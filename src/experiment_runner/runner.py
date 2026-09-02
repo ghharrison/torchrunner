@@ -3,7 +3,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from pathlib import Path
-from checkpoint.ckpt_utils import save_checkpoint
+from ckpt_utils import save_checkpoint
 
 
 class Runner:
