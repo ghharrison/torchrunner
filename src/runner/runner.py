@@ -3,6 +3,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from pathlib import Path
+from checkpoint.ckpt_utils import save_checkpoint
 
 
 class Runner:
@@ -22,13 +23,7 @@ class Runner:
         self.checkpoint_dir: Path = self.experiment_dir / "checkpoints"
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_checkpoint(self, epoch: int):
-        torch.save(
-            self.model.state_dict(),
-            self.checkpoint_dir / f'mlpmodule_weights_{epoch}.pth'
-        )
-
-    def train_loop(self, train_loader: DataLoader):
+    def train_step(self, train_loader: DataLoader):
         # Set the model to TRAIN mode
         self.model.train()
         size = len(train_loader.dataset)
@@ -52,7 +47,7 @@ class Runner:
             current = batch * train_loader.batch_size + len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
-    def eval_loop(self, test_loader):
+    def eval_step(self, test_loader):
         # set the model to EVAL mode, which changes how some modules behave
         # Important ones are Batch normalization (since inference doesn't have
         # training minibatches) and Dropout (since randomly nixing connections
@@ -81,3 +76,16 @@ class Runner:
         test_loss /= num_batches
         correct /= size
         print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")  # noqa: E501
+
+    def train(self, train_loader, test_loader):
+        epochs = 10
+        for t in range(epochs):
+            print(f"Epoch {t+1}\n-------------------------------")
+            self.train_step(train_loader)
+            self.eval_step(test_loader)
+            save_checkpoint(
+                model=self.model,
+                checkpoint_dir=self.checkpoint_dir, 
+                modeltype="MLP",
+                epoch=t,
+            )
