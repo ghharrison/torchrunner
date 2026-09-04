@@ -11,6 +11,7 @@ class OptimizerConfig:
 
 @dataclass
 class ExperimentConfig:
+    experiment_name: str = "default"
     batch_size: int = 64
     epochs: int = 10
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
@@ -18,6 +19,7 @@ class ExperimentConfig:
     @classmethod
     def from_dict(cls, cfg: dict) -> "ExperimentConfig":
         return cls(
+            experiment_name=cfg.get('experiment_name'),
             batch_size=cfg.get("batch_size", 64),
             epochs=cfg.get("epochs", 10),
             optimizer=OptimizerConfig(**cfg.get("optimizer", {})),

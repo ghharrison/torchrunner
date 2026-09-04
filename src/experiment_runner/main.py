@@ -35,6 +35,7 @@ def main(config: ExperimentConfig):
         model=model,
         loss_fn=nn.CrossEntropyLoss(),
         optimizer=create_optimizer(model, config.optimizer),
+        experiment_config=config,
     )
     runner.train(train_dataloader, test_dataloader)
 

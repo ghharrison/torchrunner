@@ -5,6 +5,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from pathlib import Path
 from ckpt_utils import save_checkpoint
+from experiment_config import ExperimentConfig
 
 
 class Runner:
@@ -14,20 +15,24 @@ class Runner:
             model: nn.Module,
             loss_fn: nn.Module,
             optimizer: Optimizer,
+            experiment_config: ExperimentConfig,
     ):
         self.device: torch.Device = device
         self.model: nn.Module = model.to(device)
         self.loss_fn: nn.Module = loss_fn
         self.optimizer: Optimizer = optimizer
+        self.config: ExperimentConfig = experiment_config
 
-        def make_experiment_dir() -> Path:
+        def make_run_dirs() -> Path:
             timestamp: str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            run_dir: Path = self.experiments_dir / timestamp
-            run_dir.mkdir(parents=True, exist_ok=True)
+            run_dir: Path = self.experiment_dir / timestamp
+            self.experiment_dir.mkdir(parents=True, exist_ok=True)
+            run_dir.mkdir(parents=True)
             return run_dir
 
-        self.experiments_dir: Path = Path("experiments")
-        self.run_dir: Path = make_experiment_dir()
+        self.experiments_root: Path = Path("experiments")
+        self.experiment_dir: Path = self.experiments_root / self.config.experiment_name  # noqa
+        self.run_dir: Path = make_run_dirs()
         self.checkpoint_dir: Path = self.run_dir / "checkpoints"
 
     def train_step(self, train_loader: DataLoader):
