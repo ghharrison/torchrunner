@@ -4,7 +4,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from pathlib import Path
-from ckpt_utils import save_checkpoint
+from ckpt_utils import Checkpointer
 from experiment_config import ExperimentConfig
 
 
@@ -34,6 +34,7 @@ class Runner:
         self.experiment_dir: Path = self.experiments_root / self.config.experiment_name  # noqa
         self.run_dir: Path = make_run_dirs()
         self.checkpoint_dir: Path = self.run_dir / "checkpoints"
+        self.checkpointer = Checkpointer(config=self.config, run_dir=self.run_dir)  # noqa
 
     def train_step(self, train_loader: DataLoader):
         # Set the model to TRAIN mode
@@ -95,9 +96,7 @@ class Runner:
             print(f"Epoch {t+1}\n-------------------------------")
             self.train_step(train_loader)
             self.eval_step(test_loader)
-            save_checkpoint(
+            self.checkpointer.save_state(
                 model=self.model,
-                checkpoint_dir=self.checkpoint_dir,
-                modeltype="MLP",
                 epoch=t,
             )

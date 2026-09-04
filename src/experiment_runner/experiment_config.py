@@ -8,6 +8,12 @@ class OptimizerConfig:
     type: str = "sgd"
     params: Mapping = {"lr": 1e-3}
 
+    def keys(self):
+        return ['type', 'params']
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
 
 @dataclass
 class ExperimentConfig:
@@ -15,6 +21,12 @@ class ExperimentConfig:
     batch_size: int = 64
     epochs: int = 10
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
+
+    def keys(self):
+        return ['experiment_name', 'batch_size', 'epochs', 'optimizer']
+
+    def __getitem__(self, key):
+        return dict(self.optimizer) if key == 'optimizer' else getattr(self, key)  # noqa
 
     @classmethod
     def from_dict(cls, cfg: dict) -> "ExperimentConfig":
