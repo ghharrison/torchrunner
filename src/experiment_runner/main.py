@@ -5,7 +5,7 @@ from datasets.fashionmnist import create_loader
 from mlp import MLPModule
 from optimizer import create_optimizer
 from experiment_config import ExperimentConfig
-from .argparse import parse_args
+from argparse_utils import parse_args
 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 64

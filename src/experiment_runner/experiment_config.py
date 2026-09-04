@@ -6,7 +6,7 @@ from typing import Mapping
 @dataclass
 class OptimizerConfig:
     type: str = "sgd"
-    params: Mapping = {"lr": 1e-3}
+    params: Mapping = field(default_factory=dict)
 
     def keys(self):
         return ['type', 'params']

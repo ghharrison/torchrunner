@@ -11,6 +11,8 @@ class Checkpointer:
     def __init__(self, config: ExperimentConfig, run_dir: Path):
         self.config: ExperimentConfig = config
         self.run_dir: Path = run_dir
+        self.checkpoint_dir: Path = run_dir / 'checkpoints'
+        self.checkpoint_dir.mkdir(parents=True)
 
     def save_state(self, model: torch.nn.Module, epoch: int):
         """
@@ -28,8 +30,7 @@ class Checkpointer:
             yaml.dump(config_dict, config_file, default_flow_style=False)
 
         # save model checkpoint
-        checkpoint_dir = self.run_dir / "checkpoints"
-        checkpoint_path = checkpoint_dir / f'epoch_{epoch:03d}.pt'
+        checkpoint_path = self.checkpoint_dir / f'epoch_{epoch:03d}.pt'
         self.save_checkpoint(model, checkpoint_path)
 
         # TODO: save optimizer checkpoint

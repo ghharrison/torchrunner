@@ -1,8 +1,8 @@
-import datetime
 import torch
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from datetime import datetime
 from pathlib import Path
 from ckpt_utils import Checkpointer
 from experiment_config import ExperimentConfig
@@ -93,7 +93,7 @@ class Runner:
     def train(self, train_loader, test_loader):
         epochs = 10
         for t in range(epochs):
-            print(f"Epoch {t+1}\n-------------------------------")
+            print(f"Epoch {t}\n-------------------------------")
             self.train_step(train_loader)
             self.eval_step(test_loader)
             self.checkpointer.save_state(
