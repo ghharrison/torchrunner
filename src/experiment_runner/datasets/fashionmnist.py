@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 def create_loader(root="data", train=True, download=True, batch_size=64):
     training_data = datasets.FashionMNIST(
-        root=root, 
+        root=root,
         train=train,
         download=download,
         transform=v2.Compose(

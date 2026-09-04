@@ -5,6 +5,7 @@ from datasets.fashionmnist import create_loader
 from mlp import MLPModule
 from optimizer import create_optimizer
 from experiment_config import ExperimentConfig
+from .argparse import parse_args
 
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 64
@@ -23,9 +24,7 @@ CONFIG = {
 }
 
 
-def main():
-    config = ExperimentConfig.from_dict(CONFIG)
-
+def main(config: ExperimentConfig):
     train_dataloader = create_loader(train=True, batch_size=config.batch_size)
     test_dataloader = create_loader(train=False, batch_size=config.batch_size)
 
@@ -41,4 +40,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    config_path = args.config
+    config = ExperimentConfig.from_yaml(config_path)
+
+    main(config=config)

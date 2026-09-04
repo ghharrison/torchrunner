@@ -1,3 +1,4 @@
+import datetime
 import torch
 from torch import nn
 from torch.optim import Optimizer
@@ -19,9 +20,15 @@ class Runner:
         self.loss_fn: nn.Module = loss_fn
         self.optimizer: Optimizer = optimizer
 
-        self.experiment_dir: Path = Path("experiments") / "fashion_mnist_001"
-        self.checkpoint_dir: Path = self.experiment_dir / "checkpoints"
-        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        def make_experiment_dir() -> Path:
+            timestamp: str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            run_dir: Path = self.experiments_dir / timestamp
+            run_dir.mkdir(parents=True, exist_ok=True)
+            return run_dir
+
+        self.experiments_dir: Path = Path("experiments")
+        self.run_dir: Path = make_experiment_dir()
+        self.checkpoint_dir: Path = self.run_dir / "checkpoints"
 
     def train_step(self, train_loader: DataLoader):
         # Set the model to TRAIN mode
@@ -85,7 +92,7 @@ class Runner:
             self.eval_step(test_loader)
             save_checkpoint(
                 model=self.model,
-                checkpoint_dir=self.checkpoint_dir, 
+                checkpoint_dir=self.checkpoint_dir,
                 modeltype="MLP",
                 epoch=t,
             )
