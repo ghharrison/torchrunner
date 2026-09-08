@@ -1,10 +1,28 @@
 import os
 import torch
 import yaml
+from dataclasses import dataclass, field
 from experiment_config import ExperimentConfig
 from pathlib import Path
+from typing import Mapping
+from torch.optim import Optimizer
+from torch.nn import Module
 
 CONFIG_FILENAME = "config.yaml"
+
+
+@dataclass
+class RunCheckpoint:
+    epoch: int
+    config: Mapping = field(default_factory=dict)
+    model_state_dict: Mapping = field(default_factory=dict)
+    optimizer_state_dict: Mapping = field(default_factory=dict)
+
+    def keys(self):
+        return ['epoch', 'config', 'model_state_dict', 'optimizer_state_dict']
+
+    def __getitem__(self, key):
+        return getattr(self, key)
 
 
 class Checkpointer:
@@ -14,7 +32,10 @@ class Checkpointer:
         self.checkpoint_dir: Path = run_dir / 'checkpoints'
         self.checkpoint_dir.mkdir(parents=True)
 
-    def save_state(self, model: torch.nn.Module, epoch: int):
+    def save_state(self,
+                   model: Module,
+                   optimizer: Optimizer,
+                   epoch: int):
         """
         Save the following to the run directory:
         - experiment config (YAML)
@@ -31,19 +52,25 @@ class Checkpointer:
 
         # save model checkpoint
         checkpoint_path = self.checkpoint_dir / f'epoch_{epoch:03d}.pt'
-        self.save_checkpoint(model, checkpoint_path)
+        self.save_checkpoint(model, optimizer, epoch, checkpoint_path)
 
-        # TODO: save optimizer checkpoint
+        # TODO: export metrics
         pass
 
     def save_checkpoint(
             self,
-            model: torch.nn.Module,
+            model: Module,
+            optimizer: Optimizer,
+            epoch: int,
             checkpoint_path: str,
     ):
         if os.path.exists(checkpoint_path):
             raise FileExistsError(f"Checkpoint {checkpoint_path} exists.")
-        torch.save(
-            model.state_dict(),
-            checkpoint_path,
+
+        checkpoint = RunCheckpoint(
+            config=dict(self.config),
+            model_state_dict=model.state_dict(),
+            optimizer_state_dict=optimizer.state_dict(),
+            epoch=epoch,
         )
+        torch.save(dict(checkpoint), checkpoint_path)

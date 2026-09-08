@@ -1,3 +1,5 @@
+import csv
+import os
 import torch
 from torch import nn
 from torch.optim import Optimizer
@@ -6,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from ckpt_utils import Checkpointer
 from experiment_config import ExperimentConfig
+from typing import List
 
 
 class Runner:
@@ -36,10 +39,13 @@ class Runner:
         self.checkpoint_dir: Path = self.run_dir / "checkpoints"
         self.checkpointer = Checkpointer(config=self.config, run_dir=self.run_dir)  # noqa
 
+        self.metrics: List = []
+
     def train_step(self, train_loader: DataLoader):
         # Set the model to TRAIN mode
         self.model.train()
         size = len(train_loader.dataset)
+        epoch_loss = 0
 
         for batch, (X, y) in enumerate(train_loader):
             # enumerating over pairs (X, y)
@@ -55,10 +61,18 @@ class Runner:
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
-        if batch % 100 == 0:
+
+            batch_size = X.size(0)
             loss = loss.item()
-            current = batch * train_loader.batch_size + len(X)
-            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+            epoch_loss += loss * batch_size
+
+            if batch % 100 == 0:
+                current = batch * train_loader.batch_size + len(X)
+                print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+
+        epoch_loss /= size
+        print(f"Training Error: \n Avg loss: {epoch_loss:>8f} \n")
+        return epoch_loss
 
     def eval_step(self, test_loader):
         # set the model to EVAL mode, which changes how some modules behave
@@ -90,13 +104,36 @@ class Runner:
         correct /= size
         print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")  # noqa: E501
 
+        return test_loss
+
     def train(self, train_loader, test_loader):
         epochs = 10
         for t in range(epochs):
             print(f"Epoch {t}\n-------------------------------")
-            self.train_step(train_loader)
-            self.eval_step(test_loader)
+            train_loss = self.train_step(train_loader)
+            test_loss = self.eval_step(test_loader)
             self.checkpointer.save_state(
                 model=self.model,
+                optimizer=self.optimizer,
                 epoch=t,
             )
+
+            metrics_file = self.run_dir / "metrics.csv"
+            if not os.path.exists(metrics_file):
+                with open(metrics_file, "w", newline="") as f:
+                    writer = csv.DictWriter(
+                        f,
+                        fieldnames=["epoch", "train_loss", "test_loss"],
+                    )
+                    writer.writeheader()
+
+            with open(metrics_file, "a", newline="") as f:
+                writer = csv.DictWriter(
+                    f,
+                    fieldnames=["epoch", "train_loss", "test_loss"],
+                )
+                writer.writerow({
+                    "epoch": t,
+                    "train_loss": train_loss,
+                    "test_loss": test_loss,
+                })
