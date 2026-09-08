@@ -3,12 +3,13 @@ import argparse
 
 def parse_args():
     """
-    Parse arguments. `--config` is required and provides the base config;
-    all other arguments are overrides.
+    Parse arguments. `--config` is used to start a new experiment run
+    with a given config. `--checkpoint` is used to resume an existing run.
     """
     parser = argparse.ArgumentParser()
 
-    common_group = parser.add_argument_group('common', 'common arguments')
-    common_group.add_argument('--config', type=str, required=True)
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument('--config', type=str)
+    mode_group.add_argument('--checkpoint', type=str)
 
     return parser.parse_args()

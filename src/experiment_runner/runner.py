@@ -1,12 +1,12 @@
-import csv
-import os
+import ckpt_utils
 import torch
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from datetime import datetime
 from pathlib import Path
-from ckpt_utils import Checkpointer
+from mlp import MLPModule
+from optimizer import create_optimizer
 from experiment_config import ExperimentConfig
 from typing import List
 
@@ -14,17 +14,22 @@ from typing import List
 class Runner:
     def __init__(
             self,
-            device: torch.Device,
-            model: nn.Module,
-            loss_fn: nn.Module,
-            optimizer: Optimizer,
             experiment_config: ExperimentConfig,
     ):
-        self.device: torch.Device = device
-        self.model: nn.Module = model.to(device)
-        self.loss_fn: nn.Module = loss_fn
-        self.optimizer: Optimizer = optimizer
+        """
+        Default constructor assumes new run
+        """
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')  # noqa
+
         self.config: ExperimentConfig = experiment_config
+        self.device: torch.Device = device
+        self.model: nn.Module = MLPModule().to(device)  # TODO: make configurable  # noqa
+        self.loss_fn: nn.Module = nn.CrossEntropyLoss()  # TODO: make configurable  # noqa
+        self.optimizer: Optimizer = create_optimizer(
+            self.model,
+            self.config.optimizer,
+        )
+        self.epoch: int = 0
 
         def make_run_dirs() -> Path:
             timestamp: str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -37,9 +42,29 @@ class Runner:
         self.experiment_dir: Path = self.experiments_root / self.config.experiment_name  # noqa
         self.run_dir: Path = make_run_dirs()
         self.checkpoint_dir: Path = self.run_dir / "checkpoints"
-        self.checkpointer = Checkpointer(config=self.config, run_dir=self.run_dir)  # noqa
+        self.checkpoint_dir.mkdir(parents=True)
 
         self.metrics: List = []
+
+    @classmethod
+    def from_checkpoint(cls, checkpoint_path: Path):
+        """
+        Alternative constructor assumes resuming from checkpoint
+        """
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')  # noqa
+        checkpoint: ckpt_utils.RunCheckpoint = ckpt_utils.load_checkpoint(
+            checkpoint_path=checkpoint_path,
+        )
+        config = ExperimentConfig.from_dict(checkpoint.config)
+        runner = cls(device=device, config=config)
+        runner.config = config
+        runner.epoch = checkpoint.epoch + 1
+
+        ckpt_utils.restore_state_from_checkpoint(
+            runner.model, runner.optimizer, checkpoint,
+        )
+
+        return runner
 
     def train_step(self, train_loader: DataLoader):
         # Set the model to TRAIN mode
@@ -112,28 +137,18 @@ class Runner:
             print(f"Epoch {t}\n-------------------------------")
             train_loss = self.train_step(train_loader)
             test_loss = self.eval_step(test_loader)
-            self.checkpointer.save_state(
+            ckpt_utils.save_state(
+                config=self.config,
                 model=self.model,
                 optimizer=self.optimizer,
                 epoch=t,
+                checkpoint_dir=self.checkpoint_dir,
+                run_dir=self.run_dir,
             )
-
-            metrics_file = self.run_dir / "metrics.csv"
-            if not os.path.exists(metrics_file):
-                with open(metrics_file, "w", newline="") as f:
-                    writer = csv.DictWriter(
-                        f,
-                        fieldnames=["epoch", "train_loss", "test_loss"],
-                    )
-                    writer.writeheader()
-
-            with open(metrics_file, "a", newline="") as f:
-                writer = csv.DictWriter(
-                    f,
-                    fieldnames=["epoch", "train_loss", "test_loss"],
-                )
-                writer.writerow({
-                    "epoch": t,
-                    "train_loss": train_loss,
-                    "test_loss": test_loss,
-                })
+            ckpt_utils.log_metrics(
+                run_dir=self.run_dir,
+                epoch=t,
+                train_loss=train_loss,
+                test_loss=test_loss,
+            )
+            self.epoch = t
