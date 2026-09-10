@@ -9,6 +9,7 @@ from mlp import MLPModule
 from optimizer import create_optimizer
 from experiment_config import ExperimentConfig
 from typing import List
+from device import get_device
 
 
 class Runner:
@@ -19,11 +20,9 @@ class Runner:
         """
         Default constructor assumes new run
         """
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')  # noqa
-
         self.config: ExperimentConfig = experiment_config
-        self.device: torch.Device = device
-        self.model: nn.Module = MLPModule().to(device)  # TODO: make configurable  # noqa
+        self.device: torch.Device = get_device(experiment_config.device)
+        self.model: nn.Module = MLPModule().to(self.device)  # TODO: make configurable  # noqa
         self.loss_fn: nn.Module = nn.CrossEntropyLoss()  # TODO: make configurable  # noqa
         self.optimizer: Optimizer = create_optimizer(
             self.model,

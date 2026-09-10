@@ -21,6 +21,7 @@ class ExperimentConfig:
     batch_size: int = 64
     epochs: int = 10
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
+    device: str = "cpu"
 
     def keys(self):
         return ['experiment_name', 'batch_size', 'epochs', 'optimizer']

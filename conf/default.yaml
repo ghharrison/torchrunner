@@ -1,6 +1,7 @@
 experiment_name: default
 batch_size: 64
 epochs: 10
+device: cpu
 optimizer:
   type: sgd
   params:
