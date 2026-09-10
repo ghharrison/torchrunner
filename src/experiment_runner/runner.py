@@ -51,14 +51,15 @@ class Runner:
         """
         Alternative constructor assumes resuming from checkpoint
         """
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')  # noqa
+        print(f"Restoring training from checkpoint at {checkpoint_path}")
         checkpoint: ckpt_utils.RunCheckpoint = ckpt_utils.load_checkpoint(
             checkpoint_path=checkpoint_path,
         )
         config = ExperimentConfig.from_dict(checkpoint.config)
-        runner = cls(device=device, config=config)
-        runner.config = config
+        runner = cls(experiment_config=config)
         runner.epoch = checkpoint.epoch + 1
+
+        print(f"resuming training from epoch {runner.epoch}")
 
         ckpt_utils.restore_state_from_checkpoint(
             runner.model, runner.optimizer, checkpoint,
@@ -132,8 +133,8 @@ class Runner:
         return test_loss
 
     def train(self, train_loader, test_loader):
-        epochs = 10
-        for t in range(epochs):
+        start_epoch = self.epoch
+        for t in range(start_epoch, self.config.epochs):
             print(f"Epoch {t}\n-------------------------------")
             train_loss = self.train_step(train_loader)
             test_loss = self.eval_step(test_loader)
