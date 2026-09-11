@@ -1,5 +1,6 @@
-import torch
 from types import ModuleType
+
+import torch
 
 
 def get_device(device_name: str) -> torch.Device:

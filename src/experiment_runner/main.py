@@ -1,15 +1,17 @@
 import random
-import numpy as np
-import torch
+from argparse import Namespace
 from dataclasses import dataclass
 from pathlib import Path
-from runner import Runner
+from typing import Any, Dict
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+
+from argparse_utils import parse_args
 from datasets.fashionmnist import create_loader
 from experiment_config import ExperimentConfig
-from argparse_utils import parse_args
-from typing import Any, Dict
-from torch.utils.data import DataLoader
-from argparse import Namespace
+from runner import Runner
 
 
 LEARNING_RATE: float = 1e-3

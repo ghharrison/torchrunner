@@ -1,6 +1,7 @@
-import yaml
 from dataclasses import dataclass, field
 from typing import Any, Mapping
+
+import yaml
 
 
 @dataclass

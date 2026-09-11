@@ -1,15 +1,18 @@
-import csv
 import os
-import torch
-import yaml
 import random
-import numpy as np
 from dataclasses import dataclass, field, asdict
-from experiment_config import ExperimentConfig
 from pathlib import Path
 from typing import Any, List, Mapping, Tuple
+
+import csv
+import numpy as np
+import torch
+import yaml
 from torch.optim import Optimizer
 from torch.nn import Module
+
+from experiment_config import ExperimentConfig
+
 
 CONFIG_FILENAME: str = "config.yaml"
 

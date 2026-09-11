@@ -1,15 +1,17 @@
-import ckpt_utils
+from datetime import datetime
+from pathlib import Path
+
 import torch
 from torch import nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.types import Number
-from datetime import datetime
-from pathlib import Path
+
+import ckpt_utils
+from device import get_device
+from experiment_config import ExperimentConfig
 from mlp import MLPModule
 from optimizer import create_optimizer
-from experiment_config import ExperimentConfig
-from device import get_device
 
 
 class Runner:
