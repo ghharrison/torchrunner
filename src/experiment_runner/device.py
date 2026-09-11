@@ -1,14 +1,15 @@
 import torch
+from types import ModuleType
 
 
-def get_device(device_name: str):
-    device_name = device_name.strip().lower()
+def get_device(device_name: str) -> torch.Device:
+    device_name: str = device_name.strip().lower()
 
     if device_name == 'cpu':
         return torch.device('cpu')
 
     if hasattr(torch.backends, device_name):
-        backend = getattr(torch.backends, device_name)
+        backend: ModuleType = getattr(torch.backends, device_name)
         if hasattr(backend, 'is_available') and backend.is_available():
             return torch.device(device_name)
 

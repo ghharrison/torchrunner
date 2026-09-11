@@ -1,18 +1,12 @@
 import yaml
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Any, Mapping
 
 
 @dataclass
 class OptimizerConfig:
     type: str = "sgd"
     params: Mapping = field(default_factory=dict)
-
-    def keys(self):
-        return ['type', 'params']
-
-    def __getitem__(self, key):
-        return getattr(self, key)
 
 
 @dataclass
@@ -22,12 +16,6 @@ class ExperimentConfig:
     epochs: int = 10
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
     device: str = "cpu"
-
-    def keys(self):
-        return ['experiment_name', 'batch_size', 'epochs', 'optimizer']
-
-    def __getitem__(self, key):
-        return dict(self.optimizer) if key == 'optimizer' else getattr(self, key)  # noqa
 
     @classmethod
     def from_dict(cls, cfg: dict) -> "ExperimentConfig":
@@ -41,5 +29,5 @@ class ExperimentConfig:
     @classmethod
     def from_yaml(cls, config_path: str) -> "ExperimentConfig":
         with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
+            config: Mapping[str, Any] = yaml.safe_load(file)
         return cls.from_dict(config)

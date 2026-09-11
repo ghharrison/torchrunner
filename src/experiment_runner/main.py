@@ -7,19 +7,23 @@ from runner import Runner
 from datasets.fashionmnist import create_loader
 from experiment_config import ExperimentConfig
 from argparse_utils import parse_args
+from typing import Any, Dict
+from torch.utils.data import DataLoader
+from argparse import Namespace
 
-LEARNING_RATE = 1e-3
-BATCH_SIZE = 64
-OPTIMIZER_TYPE = "sgd"
 
-OPTIMIZER_CONFIG = {
+LEARNING_RATE: float = 1e-3
+BATCH_SIZE: int = 64
+OPTIMIZER_TYPE: str = "sgd"
+
+OPTIMIZER_CONFIG: Dict[str, Any] = {
     "type": OPTIMIZER_TYPE,
     "params": {
         "lr": LEARNING_RATE,
     },
 }
 
-CONFIG = {
+CONFIG: Dict[str, Any] = {
     "batch_size": 64,
     "optimizer": OPTIMIZER_CONFIG,
 }
@@ -45,7 +49,7 @@ def set_all_seeds(seed: float):
     torch.backends.cudnn.benchmark = False
 
 
-def main(run_source: NewRun | ResumeRun):
+def main(run_source: NewRun | ResumeRun) -> None:
     match run_source:
         case NewRun(config):
             runner = Runner(
@@ -54,11 +58,11 @@ def main(run_source: NewRun | ResumeRun):
         case ResumeRun(checkpoint_path):
             runner = Runner.from_checkpoint(checkpoint_path)
 
-    train_dataloader = create_loader(
+    train_dataloader: DataLoader = create_loader(
         train=True,
         batch_size=runner.config.batch_size
     )
-    test_dataloader = create_loader(
+    test_dataloader: DataLoader = create_loader(
         train=False,
         batch_size=runner.config.batch_size
     )
@@ -66,15 +70,15 @@ def main(run_source: NewRun | ResumeRun):
 
 
 if __name__ == "__main__":
-    args = parse_args()
+    args: Namespace = parse_args()
     if args.config:
-        config_path = args.config
+        config_path: str = args.config
         config = ExperimentConfig.from_yaml(config_path)
         source = NewRun(config)
     else:
         if not args.checkpoint:
             raise RuntimeError("Must specify checkpoint or config")
-        checkpoint_path = args.checkpoint
+        checkpoint_path: str = args.checkpoint
         source = ResumeRun(checkpoint_path)
 
     main(run_source=source)

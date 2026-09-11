@@ -1,8 +1,8 @@
-from torch import nn
+from torch import nn, Tensor
 
-MNIST_IMAGE_DIM = 28
-MLP_LINEAR_SIZE = 512
-MNIST_OUTPUT_CLASSES = 10
+MNIST_IMAGE_DIM: int = 28
+MLP_LINEAR_SIZE: int = 512
+MNIST_OUTPUT_CLASSES: int = 10
 
 
 class MLPModule(nn.Module):
@@ -11,10 +11,10 @@ class MLPModule(nn.Module):
     for use with the MNISTFashion dataset.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.flatten = nn.Flatten()  # flatten all dims
-        self.model = nn.Sequential(
+        self.flatten: nn.Module = nn.Flatten()  # flatten all dims
+        self.model: nn.Module = nn.Sequential(
             nn.Linear(
                 in_features=MNIST_IMAGE_DIM**2,
                 out_features=MLP_LINEAR_SIZE,
@@ -31,7 +31,7 @@ class MLPModule(nn.Module):
             ),
         )
 
-    def forward(self, x):
-        flattened_input = self.flatten(x)
-        logits = self.model(flattened_input)
+    def forward(self, x: Tensor) -> Tensor:
+        flattened_input: Tensor = self.flatten(x)
+        logits: Tensor = self.model(flattened_input)
         return logits

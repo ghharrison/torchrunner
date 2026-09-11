@@ -1,14 +1,14 @@
 import ckpt_utils
 import torch
-from torch import nn
+from torch import nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torch.types import Number
 from datetime import datetime
 from pathlib import Path
 from mlp import MLPModule
 from optimizer import create_optimizer
 from experiment_config import ExperimentConfig
-from typing import List
 from device import get_device
 
 
@@ -16,7 +16,7 @@ class Runner:
     def __init__(
             self,
             experiment_config: ExperimentConfig,
-    ):
+    ) -> None:
         """
         Default constructor assumes new run
         """
@@ -38,15 +38,15 @@ class Runner:
             return run_dir
 
         self.experiments_root: Path = Path("experiments")
-        self.experiment_dir: Path = self.experiments_root / self.config.experiment_name  # noqa
+        self.experiment_dir: Path = (
+            self.experiments_root / self.config.experiment_name
+        )
         self.run_dir: Path = make_run_dirs()
         self.checkpoint_dir: Path = self.run_dir / "checkpoints"
         self.checkpoint_dir.mkdir(parents=True)
 
-        self.metrics: List = []
-
     @classmethod
-    def from_checkpoint(cls, checkpoint_path: Path):
+    def from_checkpoint(cls, checkpoint_path: Path) -> Runner:
         """
         Alternative constructor assumes resuming from checkpoint
         """
@@ -54,8 +54,10 @@ class Runner:
         checkpoint: ckpt_utils.RunCheckpoint = ckpt_utils.load_checkpoint(
             checkpoint_path=checkpoint_path,
         )
-        config = ExperimentConfig.from_dict(checkpoint.config)
-        runner = cls(experiment_config=config)
+        config = ExperimentConfig.from_dict(
+            checkpoint.config,
+        )
+        runner: Runner = cls(experiment_config=config)
         runner.epoch = checkpoint.epoch + 1
 
         print(f"resuming training from epoch {runner.epoch}")
@@ -66,63 +68,64 @@ class Runner:
 
         return runner
 
-    def train_step(self, train_loader: DataLoader):
+    def train_step(self, train_loader: DataLoader) -> float:
         # Set the model to TRAIN mode
         self.model.train()
-        size = len(train_loader.dataset)
-        epoch_loss = 0
+        size: int = len(train_loader.dataset)
+        epoch_loss: Number = 0
 
         for batch, (X, y) in enumerate(train_loader):
-            # enumerating over pairs (X, y)
-            # where X is batch input
-            # and y is training output
+            X: Tensor
+            y: Tensor
+
             X = X.to(self.device)
             y = y.to(self.device)
 
-            prediction = self.model(X)
-            loss = self.loss_fn(prediction, y)
+            prediction: Tensor = self.model(X)
+            loss: Tensor = self.loss_fn(prediction, y)
 
             # Backpropagation
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
 
-            batch_size = X.size(0)
-            loss = loss.item()
-            epoch_loss += loss * batch_size
+            batch_size: int = X.size(0)
+            loss_value: Number = loss.item()
+            epoch_loss += loss_value * batch_size
 
             if batch % 100 == 0:
                 current = batch * train_loader.batch_size + len(X)
-                print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+                print(f"loss: {loss_value:>7f}  [{current:>5d}/{size:>5d}]")
 
         epoch_loss /= size
         print(f"Training Error: \n Avg loss: {epoch_loss:>8f} \n")
         return epoch_loss
 
-    def eval_step(self, test_loader):
+    def eval_step(self, test_loader) -> float:
         # set the model to EVAL mode, which changes how some modules behave
         # Important ones are Batch normalization (since inference doesn't have
         # training minibatches) and Dropout (since randomly nixing connections
         # is undesirable during inference)
 
         self.model.eval()
-        size = len(test_loader.dataset)
-        num_batches = len(test_loader)
-        test_loss, correct = 0, 0
+        size: int = len(test_loader.dataset)
+        num_batches: int = len(test_loader)
+        test_loss: Number = 0
+        correct: int = 0
 
         # We use the context manager `torch.no_grad()` to disable
         # gradient computation since we're no longer updating weights
         with torch.no_grad():
             for X, y in test_loader:
-                X = X.to(self.device)
-                y = y.to(self.device)
-                prediction = self.model(X)
+                X: Tensor = X.to(self.device)
+                y: Tensor = y.to(self.device)
+                prediction: Tensor = self.model(X)
 
                 # `.item()` converts a single-value tensor to a scalar
                 test_loss += self.loss_fn(prediction, y).item()
 
                 # "argmax" = "index of the maximum"
-                batch_correct = prediction.argmax(1) == y
+                batch_correct: Tensor = (prediction.argmax(1) == y)
                 correct += batch_correct.type(torch.float).sum().item()
 
         test_loss /= num_batches
@@ -131,12 +134,12 @@ class Runner:
 
         return test_loss
 
-    def train(self, train_loader, test_loader):
-        start_epoch = self.epoch
+    def train(self, train_loader, test_loader) -> None:
+        start_epoch: int = self.epoch
         for t in range(start_epoch, self.config.epochs):
             print(f"Epoch {t}\n-------------------------------")
-            train_loss = self.train_step(train_loader)
-            test_loss = self.eval_step(test_loader)
+            train_loss: float = self.train_step(train_loader)
+            test_loss: float = self.eval_step(test_loader)
             ckpt_utils.save_state(
                 config=self.config,
                 model=self.model,

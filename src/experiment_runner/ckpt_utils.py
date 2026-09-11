@@ -4,14 +4,14 @@ import torch
 import yaml
 import random
 import numpy as np
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from experiment_config import ExperimentConfig
 from pathlib import Path
-from typing import List, Mapping, Tuple
+from typing import Any, List, Mapping, Tuple
 from torch.optim import Optimizer
 from torch.nn import Module
 
-CONFIG_FILENAME = "config.yaml"
+CONFIG_FILENAME: str = "config.yaml"
 
 
 @dataclass(frozen=True)
@@ -20,12 +20,6 @@ class RNGState:
     numpy: Mapping = field(default_factory=dict)
     torch: torch.Tensor = field(default_factory=torch.Tensor)
     cuda: List[torch.Tensor] = field(default_factory=list)
-
-    def keys(self):
-        return ['python', 'numpy', 'torch', 'cuda']
-
-    def __getitem__(self, key):
-        return getattr(self, key)
 
 
 @dataclass(frozen=True)
@@ -36,18 +30,6 @@ class RunCheckpoint:
     optimizer_state_dict: Mapping = field(default_factory=dict)
     rng_state: Mapping = field(default_factory=dict)
 
-    def keys(self):
-        return [
-            'epoch',
-            'config',
-            'model_state_dict',
-            'optimizer_state_dict',
-            'rng_state',
-        ]
-
-    def __getitem__(self, key):
-        return getattr(self, key)
-
 
 def save_state(
         model: Module,
@@ -56,7 +38,7 @@ def save_state(
         config: ExperimentConfig,
         run_dir: Path,
         checkpoint_dir: Path
-):
+) -> None:
     """
     Save the following to the run directory:
     - experiment config (YAML)
@@ -66,13 +48,13 @@ def save_state(
     """
 
     # dump config to YAML
-    config_dict = dict(config)
-    config_path = run_dir / CONFIG_FILENAME
+    config_dict: dict[str, Any] = asdict(config)
+    config_path: Path = run_dir / CONFIG_FILENAME
     with open(config_path, 'w') as config_file:
         yaml.dump(config_dict, config_file, default_flow_style=False)
 
     # record RNG state
-    rng: RNGState = RNGState(
+    rng = RNGState(
         python=random.getstate(),
         numpy=np.random.get_state(legacy=False),
         torch=torch.random.get_rng_state(),
@@ -83,7 +65,7 @@ def save_state(
     rng.numpy['state']['key'] = torch.from_numpy(rng.numpy['state']['key'])
 
     # save model checkpoint
-    checkpoint_path = checkpoint_dir / f'epoch_{epoch:03d}.pt'
+    checkpoint_path: Path = checkpoint_dir / f'epoch_{epoch:03d}.pt'
     save_checkpoint(config, model, optimizer, epoch, rng, checkpoint_path)
 
 
@@ -94,25 +76,25 @@ def save_checkpoint(
         epoch: int,
         rng_state: RNGState,
         checkpoint_path: str,
-):
+) -> None:
     if os.path.exists(checkpoint_path):
         raise FileExistsError(f"Checkpoint {checkpoint_path} exists.")
 
     checkpoint = RunCheckpoint(
-        config=dict(config),
+        config=asdict(config),
         model_state_dict=model.state_dict(),
         optimizer_state_dict=optimizer.state_dict(),
         epoch=epoch,
-        rng_state=dict(rng_state),
+        rng_state=asdict(rng_state),
     )
-    torch.save(dict(checkpoint), checkpoint_path)
+    torch.save(asdict(checkpoint), checkpoint_path)
 
 
 def load_checkpoint(
         checkpoint_path: str,
 ) -> RunCheckpoint:
     checkpoint_dict: Mapping = torch.load(checkpoint_path)
-    checkpoint = RunCheckpoint(**checkpoint_dict)
+    checkpoint: RunCheckpoint = RunCheckpoint(**checkpoint_dict)
     return checkpoint
 
 
@@ -132,14 +114,14 @@ def restore_state_from_checkpoint(
         model: Module,
         optimizer: Optimizer,
         checkpoint: RunCheckpoint,
-):
+) -> None:
     model.load_state_dict(checkpoint.model_state_dict)
     optimizer.load_state_dict(checkpoint.optimizer_state_dict)
     restore_rng_state(checkpoint.rng_state)
 
 
-def log_metrics(run_dir, epoch, train_loss, test_loss):
-    metrics_file = run_dir / "metrics.csv"
+def log_metrics(run_dir, epoch, train_loss, test_loss) -> None:
+    metrics_file: Path = run_dir / "metrics.csv"
     if not os.path.exists(metrics_file):
         with open(metrics_file, "w", newline="") as f:
             writer = csv.DictWriter(
