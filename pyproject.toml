@@ -1,0 +1,20 @@
+[project]
+name = "torchrunner"
+version = "0.1.0"
+description = "A tool for running experiments for PyTorch models."
+authors = [
+    {name = "ghharrison",email = "113945622+ghharrison@users.noreply.github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "torch (>=2.13.0,<3.0.0)",
+    "pyyaml (>=6.0.3,<7.0.0)",
+    "numpy (>=2.5.2,<3.0.0)",
+    "torchvision (>=0.28.0,<0.30.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
