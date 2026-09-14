@@ -37,7 +37,7 @@ def main(run_source: NewRun | ResumeRun) -> None:
     match run_source:
         case NewRun(config):
             runner = Runner(
-                experiment_config=config,
+                config=config,
             )
         case ResumeRun(checkpoint_path):
             runner = Runner.from_checkpoint(checkpoint_path)

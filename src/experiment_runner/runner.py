@@ -11,21 +11,22 @@ import ckpt_utils
 from device import get_device
 from experiment_config import ExperimentConfig
 from model import get_module
+from loss import get_loss_fn
 from optimizer import create_optimizer
 
 
 class Runner:
     def __init__(
             self,
-            experiment_config: ExperimentConfig,
+            config: ExperimentConfig,
     ) -> None:
         """
         Default constructor assumes new run
         """
-        self.config: ExperimentConfig = experiment_config
-        self.device: torch.Device = get_device(experiment_config)
-        self.model: nn.Module = get_module(experiment_config).to(self.device)
-        self.loss_fn: nn.Module = nn.CrossEntropyLoss()  # TODO: make configurable  # noqa
+        self.config: ExperimentConfig = config
+        self.device: torch.Device = get_device(config)
+        self.model: nn.Module = get_module(config).to(self.device)
+        self.loss_fn: nn.Module = get_loss_fn(config).to(self.device)
         self.optimizer: Optimizer = create_optimizer(
             self.model,
             self.config.optimizer,

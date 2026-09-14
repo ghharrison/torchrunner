@@ -8,6 +8,8 @@ model:
     image_dim: 28
     linear_layer_size: 512
     output_classes: 10
+loss_fn:
+  type: crossentropy
 optimizer:
   type: sgd
   params:

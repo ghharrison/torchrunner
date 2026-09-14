@@ -16,6 +16,7 @@ class ExperimentConfig:
     batch_size: int = 64
     epochs: int = 10
     model: ModuleConfig = field(default_factory=ModuleConfig)
+    loss_fn: ModuleConfig = field(default_factory=ModuleConfig)
     optimizer: ModuleConfig = field(default_factory=ModuleConfig)
     device: str = "cpu"
 
@@ -26,6 +27,7 @@ class ExperimentConfig:
             batch_size=cfg.get("batch_size", 64),
             epochs=cfg.get("epochs", 10),
             model=ModuleConfig(**cfg.get("model", {})),
+            loss_fn=ModuleConfig(**cfg.get("loss_fn", {})),
             optimizer=ModuleConfig(**cfg.get("optimizer", {})),
         )
 
