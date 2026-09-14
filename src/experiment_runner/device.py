@@ -1,10 +1,11 @@
 from types import ModuleType
 
+from experiment_config import ExperimentConfig
 import torch
 
 
-def get_device(device_name: str) -> torch.Device:
-    device_name: str = device_name.strip().lower()
+def get_device(config: ExperimentConfig) -> torch.Device:
+    device_name: str = config.device.strip().lower()
 
     if device_name == 'cpu':
         return torch.device('cpu')
