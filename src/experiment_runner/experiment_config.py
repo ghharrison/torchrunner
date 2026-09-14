@@ -5,8 +5,8 @@ import yaml
 
 
 @dataclass
-class OptimizerConfig:
-    type: str = "sgd"
+class ModuleConfig:
+    type: str
     params: Mapping = field(default_factory=dict)
 
 
@@ -15,7 +15,8 @@ class ExperimentConfig:
     experiment_name: str = "default"
     batch_size: int = 64
     epochs: int = 10
-    optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
+    model: ModuleConfig = field(default_factory=ModuleConfig)
+    optimizer: ModuleConfig = field(default_factory=ModuleConfig)
     device: str = "cpu"
 
     @classmethod
@@ -24,7 +25,8 @@ class ExperimentConfig:
             experiment_name=cfg.get('experiment_name'),
             batch_size=cfg.get("batch_size", 64),
             epochs=cfg.get("epochs", 10),
-            optimizer=OptimizerConfig(**cfg.get("optimizer", {})),
+            model=ModuleConfig(**cfg.get("model", {})),
+            optimizer=ModuleConfig(**cfg.get("optimizer", {})),
         )
 
     @classmethod

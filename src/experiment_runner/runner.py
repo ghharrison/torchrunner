@@ -10,7 +10,7 @@ from torch.types import Number
 import ckpt_utils
 from device import get_device
 from experiment_config import ExperimentConfig
-from mlp import MLPModule
+from model import get_module
 from optimizer import create_optimizer
 
 
@@ -23,8 +23,8 @@ class Runner:
         Default constructor assumes new run
         """
         self.config: ExperimentConfig = experiment_config
-        self.device: torch.Device = get_device(experiment_config.device)
-        self.model: nn.Module = MLPModule().to(self.device)  # TODO: make configurable  # noqa
+        self.device: torch.Device = get_device(experiment_config)
+        self.model: nn.Module = get_module(experiment_config).to(self.device)
         self.loss_fn: nn.Module = nn.CrossEntropyLoss()  # TODO: make configurable  # noqa
         self.optimizer: Optimizer = create_optimizer(
             self.model,

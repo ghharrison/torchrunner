@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from experiment_config import OptimizerConfig
+from experiment_config import ModuleConfig
 
 
 OPTIMIZERS = {
@@ -11,13 +11,13 @@ OPTIMIZERS = {
 
 def create_optimizer(
         model: nn.Module,
-        optimizer_cfg: OptimizerConfig,
+        optimizer_cfg: ModuleConfig,
 ):
     try:
-        optimizer_cls = OPTIMIZERS[OptimizerConfig.type.lower()]
+        optimizer_cls = OPTIMIZERS[optimizer_cfg.type.lower()]
     except KeyError:
         raise ValueError(
-            f"Unsupported optimizer type {OptimizerConfig.type}. "
+            f"Unsupported optimizer type {ModuleConfig.type}. "
             f"Current supported optimizers: {",".join(OPTIMIZERS.keys())}"
         )
 

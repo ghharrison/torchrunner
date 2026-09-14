@@ -1,9 +1,5 @@
 from torch import nn, Tensor
 
-MNIST_IMAGE_DIM: int = 28
-MLP_LINEAR_SIZE: int = 512
-MNIST_OUTPUT_CLASSES: int = 10
-
 
 class MLPModule(nn.Module):
     """
@@ -11,23 +7,26 @@ class MLPModule(nn.Module):
     for use with the MNISTFashion dataset.
     """
 
-    def __init__(self) -> None:
+    def __init__(self,
+                 image_dim: int,
+                 linear_layer_size: int,
+                 output_classes: int) -> None:
         super().__init__()
-        self.flatten: nn.Module = nn.Flatten()  # flatten all dims
+        self.flatten: nn.Module = nn.Flatten()
         self.model: nn.Module = nn.Sequential(
             nn.Linear(
-                in_features=MNIST_IMAGE_DIM**2,
-                out_features=MLP_LINEAR_SIZE,
+                in_features=image_dim**2,
+                out_features=linear_layer_size,
             ),
             nn.ReLU(),
             nn.Linear(
-                in_features=MLP_LINEAR_SIZE,
-                out_features=MLP_LINEAR_SIZE,
+                in_features=linear_layer_size,
+                out_features=linear_layer_size,
             ),
             nn.ReLU(),
             nn.Linear(
-                in_features=MLP_LINEAR_SIZE,
-                out_features=MNIST_OUTPUT_CLASSES,
+                in_features=linear_layer_size,
+                out_features=output_classes,
             ),
         )
 
