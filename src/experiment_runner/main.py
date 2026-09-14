@@ -2,7 +2,6 @@ import random
 from argparse import Namespace
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
 
 import numpy as np
 import torch
@@ -12,23 +11,6 @@ from argparse_utils import parse_args
 from datasets.fashionmnist import create_loader
 from experiment_config import ExperimentConfig
 from runner import Runner
-
-
-LEARNING_RATE: float = 1e-3
-BATCH_SIZE: int = 64
-OPTIMIZER_TYPE: str = "sgd"
-
-OPTIMIZER_CONFIG: Dict[str, Any] = {
-    "type": OPTIMIZER_TYPE,
-    "params": {
-        "lr": LEARNING_RATE,
-    },
-}
-
-CONFIG: Dict[str, Any] = {
-    "batch_size": 64,
-    "optimizer": OPTIMIZER_CONFIG,
-}
 
 
 @dataclass(frozen=True)
