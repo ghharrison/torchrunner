@@ -146,6 +146,7 @@ class Runner:
             ckpt_utils.save_state(
                 config=self.config,
                 model=self.model,
+                loss_fn=self.loss_fn,
                 optimizer=self.optimizer,
                 epoch=t,
                 checkpoint_dir=self.checkpoint_dir,

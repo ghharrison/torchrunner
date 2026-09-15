@@ -10,6 +10,7 @@ model:
     output_classes: 10
 loss_fn:
   type: crossentropy
+  params: {}
 optimizer:
   type: sgd
   params:

@@ -1,5 +1,6 @@
-from typing import Mapping
+from typing import Callable, Mapping, TypeAlias
 
+import torch
 from torch import nn
 
 from experiment_config import ExperimentConfig
@@ -7,6 +8,8 @@ from experiment_config import ExperimentConfig
 LOSS_FUNCTIONS: Mapping[str, nn.Module] = {
     "crossentropy": nn.CrossEntropyLoss,
 }
+
+CallableLoss: TypeAlias = Callable[..., torch.Tensor]
 
 
 def get_loss_fn(

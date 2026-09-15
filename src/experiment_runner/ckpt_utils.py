@@ -12,6 +12,7 @@ from torch.optim import Optimizer
 from torch.nn import Module
 
 from experiment_config import ExperimentConfig
+from loss import CallableLoss
 
 
 CONFIG_FILENAME: str = "config.yaml"
@@ -31,17 +32,19 @@ class RunCheckpoint:
     config: Mapping = field(default_factory=dict)
     model_state_dict: Mapping = field(default_factory=dict)
     optimizer_state_dict: Mapping = field(default_factory=dict)
+    loss_state_dict: Mapping = field(default_factory=dict)
     rng_state: Mapping = field(default_factory=dict)
 
 
 def save_state(
         model: Module,
         optimizer: Optimizer,
+        loss_fn: CallableLoss,
         epoch: int,
         config: ExperimentConfig,
         run_dir: Path,
         checkpoint_dir: Path
-) -> None:
+) -> Tuple[Path, Path]:
     """
     Save the following to the run directory:
     - experiment config (YAML)
@@ -53,6 +56,9 @@ def save_state(
     # dump config to YAML
     config_dict: dict[str, Any] = asdict(config)
     config_path: Path = run_dir / CONFIG_FILENAME
+    if os.path.exists(config_path):
+        raise FileExistsError(f"Config file {config_path} exists.")
+
     with open(config_path, 'w') as config_file:
         yaml.dump(config_dict, config_file, default_flow_style=False)
 
@@ -69,28 +75,49 @@ def save_state(
 
     # save model checkpoint
     checkpoint_path: Path = checkpoint_dir / f'epoch_{epoch:03d}.pt'
-    save_checkpoint(config, model, optimizer, epoch, rng, checkpoint_path)
+    checkpoint_path = save_checkpoint(
+        config=config,
+        model=model,
+        optimizer=optimizer,
+        loss_fn=loss_fn,
+        epoch=epoch,
+        rng_state=rng,
+        checkpoint_path=checkpoint_path,
+    )
+    return config_path, checkpoint_path
 
 
 def save_checkpoint(
         config: ExperimentConfig,
         model: Module,
         optimizer: Optimizer,
+        loss_fn: CallableLoss,
         epoch: int,
         rng_state: RNGState,
-        checkpoint_path: str,
-) -> None:
+        checkpoint_path: Path,
+) -> Path:
     if os.path.exists(checkpoint_path):
         raise FileExistsError(f"Checkpoint {checkpoint_path} exists.")
 
+    if hasattr(loss_fn, "state_dict"):
+        if not callable(getattr(loss_fn, "state_dict")):
+            raise ValueError(
+                f"Loss function {loss_fn} had unexpected"
+                f" non-callable attribute `state_dict`"
+            )
+        loss_state_dict = loss_fn.state_dict()
+    else:
+        loss_state_dict = {}
     checkpoint = RunCheckpoint(
         config=asdict(config),
         model_state_dict=model.state_dict(),
         optimizer_state_dict=optimizer.state_dict(),
+        loss_state_dict=loss_state_dict,
         epoch=epoch,
         rng_state=asdict(rng_state),
     )
     torch.save(asdict(checkpoint), checkpoint_path)
+    return checkpoint_path
 
 
 def load_checkpoint(
@@ -116,14 +143,27 @@ def restore_rng_state(rng_dict: Mapping):
 def restore_state_from_checkpoint(
         model: Module,
         optimizer: Optimizer,
+        loss_fn: CallableLoss,
         checkpoint: RunCheckpoint,
 ) -> None:
     model.load_state_dict(checkpoint.model_state_dict)
     optimizer.load_state_dict(checkpoint.optimizer_state_dict)
+    if hasattr(loss_fn, 'load_state_dict'):
+        if not callable(getattr(loss_fn, 'load_state_dict')):
+            raise ValueError(
+                f"Loss function {loss_fn} had unexpected non-callable"
+                f" attribute `load_state_dict`"
+            )
+        loss_fn.load_state_dict(checkpoint.loss_state_dict)
     restore_rng_state(checkpoint.rng_state)
 
 
-def log_metrics(run_dir, epoch, train_loss, test_loss) -> None:
+def log_metrics(
+        run_dir: Path,
+        epoch: int,
+        train_loss: float,
+        test_loss: float,
+) -> Path:
     metrics_file: Path = run_dir / "metrics.csv"
     if not os.path.exists(metrics_file):
         with open(metrics_file, "w", newline="") as f:
@@ -143,3 +183,5 @@ def log_metrics(run_dir, epoch, train_loss, test_loss) -> None:
             "train_loss": train_loss,
             "test_loss": test_loss,
         })
+
+    return metrics_file
