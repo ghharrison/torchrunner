@@ -25,6 +25,43 @@ class RNGState:
     torch: torch.Tensor = field(default_factory=torch.Tensor)
     cuda: List[torch.Tensor] = field(default_factory=list)
 
+    @classmethod
+    def capture(cls) -> RNGState:
+        """
+        Build an instance of `RNGState` whose attributes
+        contain the current RNG state.
+        """
+        return cls(
+            python=random.getstate(),
+            numpy=np.random.get_state(legacy=False),
+            torch=torch.get_rng_state(),
+            cuda=torch.cuda.get_rng_state_all(),
+        )
+
+    def restore(self) -> None:
+        """
+        Set the RNG state to match the values of this
+        `RNGState` instance's attributes.
+        """
+        random.setstate(self.python)
+        np.random.set_state(self.numpy)
+        torch.set_rng_state(self.torch)
+        torch.cuda.set_rng_state_all(self.cuda)
+
+    def __eq__(self, other):
+        if not isinstance(other, RNGState):
+            return NotImplemented
+
+        return all([
+            self.python == other.python,
+            torch.allclose(
+                torch.from_numpy(self.numpy['state']['key']),
+                torch.from_numpy(other.numpy['state']['key']),
+            ),
+            torch.allclose(self.torch, other.torch),
+            torch.allclose(torch.cat(self.cuda), torch.cat(other.cuda))
+        ])
+
 
 @dataclass(frozen=True)
 class RunCheckpoint:
@@ -63,15 +100,11 @@ def save_state(
         yaml.dump(config_dict, config_file, default_flow_style=False)
 
     # record RNG state
-    rng = RNGState(
-        python=random.getstate(),
-        numpy=np.random.get_state(legacy=False),
-        torch=torch.random.get_rng_state(),
-        cuda=torch.cuda.get_rng_state_all(),
-    )
-
+    rng = RNGState.capture()
     # NumPy arrays are not trusted by `torch.load`; convert to Tensor
-    rng.numpy['state']['key'] = torch.from_numpy(rng.numpy['state']['key'])
+    rng.numpy['state']['key'] = torch.from_numpy(
+        rng.numpy['state']['key']
+    )
 
     # save model checkpoint
     checkpoint_path: Path = checkpoint_dir / f'epoch_{epoch:03d}.pt'
@@ -128,18 +161,6 @@ def load_checkpoint(
     return checkpoint
 
 
-def restore_rng_state(rng_dict: Mapping):
-    rng_state = RNGState(**rng_dict)
-
-    # convert serialized tensor back into ndarray
-    rng_state.numpy['state']['key'] = rng_state.numpy['state']['key'].numpy()
-
-    random.setstate(rng_state.python)
-    np.random.set_state(rng_state.numpy)
-    torch.random.set_rng_state(rng_state.torch)
-    torch.cuda.set_rng_state_all(rng_state.cuda)
-
-
 def restore_state_from_checkpoint(
         model: Module,
         optimizer: Optimizer,
@@ -155,7 +176,13 @@ def restore_state_from_checkpoint(
                 f" attribute `load_state_dict`"
             )
         loss_fn.load_state_dict(checkpoint.loss_state_dict)
-    restore_rng_state(checkpoint.rng_state)
+
+    rng_state = RNGState(**checkpoint.rng_state)
+
+    # convert serialized tensor back into ndarray
+    rng_state.numpy['state']['key'] = rng_state.numpy['state']['key'].numpy()
+
+    rng_state.restore()
 
 
 def log_metrics(
