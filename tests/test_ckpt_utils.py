@@ -1,3 +1,4 @@
+import copy
 import csv
 import random
 from dataclasses import asdict
@@ -8,15 +9,16 @@ import pytest
 import torch
 import yaml
 from torch.optim import SGD
+from torch.testing import assert_close
 
-import src.experiment_runner.ckpt_utils as ckpt
-from src.experiment_runner.mlp import MLPModule
-from src.experiment_runner.experiment_config import (
+import experiment_runner.ckpt_utils as ckpt
+from experiment_runner.mlp import MLPModule
+from experiment_runner.experiment_config import (
     ExperimentConfig, ModuleConfig
 )
 
 
-def test_log_metrics(tmp_path: Path):
+def test_log_metrics(tmp_path: Path) -> None:
     """
     - Use a `pytest` temporary directory `tmp_path`
     - use log_metrics to log random values to file
@@ -44,11 +46,79 @@ def test_log_metrics(tmp_path: Path):
         reader = csv.DictReader(csvfile)
         assert set(reader.fieldnames) == expected.keys()
         row: Mapping[str, str] = reader.__next__()
-        for key, value in expected:
-            assert row[key] == value
+        for key, value in expected.items():
+            assert row[key] == str(value)
 
 
-def test_save_state(tmp_path):
+@pytest.fixture
+def mlp_setup():
+    mlp_params = {
+        'image_dim': 28,
+        'linear_layer_size': 512,
+        'output_classes': 10,
+    }
+    mlp_config = ModuleConfig(type='mlp', params=mlp_params)
+    mlp = MLPModule(**mlp_params)
+    return mlp_params, mlp_config, mlp
+
+
+@pytest.fixture
+def sgd_setup(mlp_setup):
+    _, _, mlp = mlp_setup
+    sgd_params = {'lr': 0.001}
+    sgd_config = ModuleConfig(type='sgd', params=sgd_params)
+    sgd = SGD(mlp.parameters())
+    return sgd_params, sgd_config, sgd
+
+
+@pytest.fixture
+def loss_setup():
+    loss_config = ModuleConfig(type='crossentropy', params={})
+    loss_fn = torch.nn.CrossEntropyLoss()
+    return loss_config, loss_fn
+
+
+@pytest.fixture
+def make_state(tmp_path_factory, mlp_setup, sgd_setup, loss_setup):
+    mlp_params, mlp_config, mlp = mlp_setup
+    sgd_params, sgd_config, sgd = sgd_setup
+    loss_config, loss_fn = loss_setup
+
+    config = ExperimentConfig(
+        model=mlp_config,
+        optimizer=sgd_config,
+        loss_fn=loss_config,
+    )
+
+    run_dir = tmp_path_factory.mktemp("run") 
+    checkpoint_dir = run_dir / "checkpoint"
+    checkpoint_dir.mkdir()
+    state = {
+        'model': mlp,
+        'optimizer': sgd,
+        'loss_fn': loss_fn,
+        'epoch': 0,
+        'config': config,
+        'run_dir': run_dir,
+        'checkpoint_dir': checkpoint_dir,
+    }
+    return config, state
+
+
+@pytest.fixture
+def make_checkpoint(make_state):
+    config, state = make_state
+    cfg_path, ckpt_path = ckpt.save_state(**state)
+    return cfg_path, ckpt_path
+
+
+def test_save_state(
+        mlp_setup,
+        sgd_setup,
+        loss_setup,
+        make_state,
+        make_checkpoint,
+) -> None:
     """
     - Create a temporary run dir and a temporary
       checkpoint dir inside it
@@ -59,48 +129,34 @@ def test_save_state(tmp_path):
     - Assert that saving to the same file raises a `FileExistsError`
     - Read the checkpoint and assert all the values match
     """
-    checkpoint_dir = tmp_path / "checkpoint"
-    checkpoint_dir.mkdir()
+    mlp_params, mlp_config, mlp = mlp_setup
+    sgd_params, sgd_config, sgd = sgd_setup
+    loss_config, loss_fn = loss_setup
 
-    mlp_params = {
-        'image_dim': 28,
-        'linear_layer_size': 512,
-        'output_classes': 10,
-    }
-    mlp_config = ModuleConfig(type='mlp', params=mlp_params)
-    mlp = MLPModule(**mlp_params)
+    config, state = make_state
 
-    sgd_params = {'lr': 0.001}
-    sgd_config = ModuleConfig(type='sgd', params=sgd_params)
-    sgd = SGD(mlp.parameters())
-
-    loss_config = ModuleConfig(type='crossentropy', params={})
-    loss_fn = torch.nn.CrossEntropyLoss()
-
-    config = ExperimentConfig(
-        model=mlp_config,
-        optimizer=sgd_config,
-        loss_fn=loss_config,
-    )
-    state = {
-        'model': mlp,
-        'optimizer': sgd,
-        'loss_fn': loss_fn,
-        'epoch': 0,
-        'config': config,
-        'run_dir': tmp_path,
-        'checkpoint_dir': checkpoint_dir,
-    }
-    cfg_path, ckpt_path = ckpt.save_state(**state)
+    cfg_path, ckpt_path = make_checkpoint
     with pytest.raises(FileExistsError):
         ckpt.save_state(**state)
 
     checkpoint = ckpt.load_checkpoint(ckpt_path)
 
     # State dict equality checks
-    assert checkpoint.model_state_dict == mlp.state_dict()
-    assert checkpoint.optimizer_state_dict == sgd.state_dict()
-    assert checkpoint.loss_state_dict == loss_fn.state_dict()
+    for key, value in mlp.state_dict().items():
+        assert_close(
+            checkpoint.model_state_dict[key],
+            value,
+        )
+    for key, value in sgd.state_dict().items():
+        assert_close(
+            checkpoint.optimizer_state_dict[key],
+            value,
+        )
+    for key, value in loss_fn.state_dict().items():
+        assert_close(
+            checkpoint.loss_state_dict[key],
+            value,
+        )
 
     # Config equality checks
     assert checkpoint.config == asdict(config)
@@ -109,10 +165,42 @@ def test_save_state(tmp_path):
         assert yaml_config == checkpoint.config
 
 
-def test_restore_state():
+def assert_state_close(expected: Mapping, actual: Mapping) -> None:
+    for key, value in expected.items():
+        assert_close(value, actual[key])
+
+
+def test_restore_state(
+        mlp_setup,
+        sgd_setup,
+        loss_setup,
+        make_state,
+        make_checkpoint,
+):
     """
     - Create state dicts for optimizer, model, RNG state
     - Create and save a temporary checkpoint
     - restore state and assert equality between state dicts and
       equality of each aspect of RNG state
     """
+    mlp_params, mlp_config, mlp = mlp_setup
+    sgd_params, sgd_config, sgd = sgd_setup
+    loss_config, loss_fn = loss_setup
+
+    config, state = make_state
+
+    expected_mlp_state = copy.deepcopy(mlp.state_dict())
+    expected_sgd_state = copy.deepcopy(sgd.state_dict())
+    expected_loss_state = copy.deepcopy(loss_fn.state_dict())
+
+    cfg_path, ckpt_path = make_checkpoint
+    checkpoint = ckpt.load_checkpoint(ckpt_path)
+    ckpt.restore_state_from_checkpoint(mlp, sgd, loss_fn, checkpoint)
+
+    actual_mlp_state = mlp.state_dict()
+    actual_sgd_state = sgd.state_dict()
+    actual_loss_state = loss_fn.state_dict()
+
+    assert_state_close(expected_mlp_state, actual_mlp_state)
+    assert_state_close(expected_sgd_state, actual_sgd_state)
+    assert_state_close(expected_loss_state, actual_loss_state)
