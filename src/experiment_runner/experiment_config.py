@@ -12,6 +12,7 @@ class ModuleConfig:
 
 @dataclass
 class ExperimentConfig:
+    experiments_root: str = "experiments"
     experiment_name: str = "default"
     batch_size: int = 64
     epochs: int = 10
@@ -21,18 +22,11 @@ class ExperimentConfig:
     device: str = "cpu"
 
     @classmethod
-    def from_dict(cls, cfg: dict) -> "ExperimentConfig":
-        return cls(
-            experiment_name=cfg.get('experiment_name'),
-            batch_size=cfg.get("batch_size", 64),
-            epochs=cfg.get("epochs", 10),
-            model=ModuleConfig(**cfg.get("model", {})),
-            loss_fn=ModuleConfig(**cfg.get("loss_fn", {})),
-            optimizer=ModuleConfig(**cfg.get("optimizer", {})),
-        )
-
-    @classmethod
     def from_yaml(cls, config_path: str) -> "ExperimentConfig":
         with open(config_path, 'r') as file:
             config: Mapping[str, Any] = yaml.safe_load(file)
-        return cls.from_dict(config)
+        config['model'] = ModuleConfig(**config.get("model", {}))
+        config['loss_fn'] = ModuleConfig(**config.get("loss_fn", {}))
+        config['optimizer'] = ModuleConfig(**config.get("optimizer", {}))
+
+        return cls(**config)
