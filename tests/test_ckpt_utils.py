@@ -6,16 +6,11 @@ from pathlib import Path
 from typing import Mapping
 
 import pytest
-import torch
 import yaml
-from torch.optim import SGD
 from torch.testing import assert_close
 
 import experiment_runner.ckpt_utils as ckpt
-from experiment_runner.mlp import MLPModule
-from experiment_runner.experiment_config import (
-    ExperimentConfig, ModuleConfig
-)
+from experiment_runner.ckpt_utils import RNGState
 
 
 def test_log_metrics(tmp_path: Path) -> None:
@@ -48,61 +43,6 @@ def test_log_metrics(tmp_path: Path) -> None:
         row: Mapping[str, str] = reader.__next__()
         for key, value in expected.items():
             assert row[key] == str(value)
-
-
-@pytest.fixture
-def mlp_setup():
-    mlp_params = {
-        'image_dim': 28,
-        'linear_layer_size': 512,
-        'output_classes': 10,
-    }
-    mlp_config = ModuleConfig(type='mlp', params=mlp_params)
-    mlp = MLPModule(**mlp_params)
-    return mlp_params, mlp_config, mlp
-
-
-@pytest.fixture
-def sgd_setup(mlp_setup):
-    _, _, mlp = mlp_setup
-    sgd_params = {'lr': 0.001}
-    sgd_config = ModuleConfig(type='sgd', params=sgd_params)
-    sgd = SGD(mlp.parameters())
-    return sgd_params, sgd_config, sgd
-
-
-@pytest.fixture
-def loss_setup():
-    loss_config = ModuleConfig(type='crossentropy', params={})
-    loss_fn = torch.nn.CrossEntropyLoss()
-    return loss_config, loss_fn
-
-
-@pytest.fixture
-def make_state(tmp_path_factory, mlp_setup, sgd_setup, loss_setup):
-    mlp_params, mlp_config, mlp = mlp_setup
-    sgd_params, sgd_config, sgd = sgd_setup
-    loss_config, loss_fn = loss_setup
-
-    config = ExperimentConfig(
-        model=mlp_config,
-        optimizer=sgd_config,
-        loss_fn=loss_config,
-    )
-
-    run_dir = tmp_path_factory.mktemp("run") 
-    checkpoint_dir = run_dir / "checkpoint"
-    checkpoint_dir.mkdir()
-    state = {
-        'model': mlp,
-        'optimizer': sgd,
-        'loss_fn': loss_fn,
-        'epoch': 0,
-        'config': config,
-        'run_dir': run_dir,
-        'checkpoint_dir': checkpoint_dir,
-    }
-    return config, state
 
 
 @pytest.fixture
@@ -193,6 +133,8 @@ def test_restore_state(
     expected_sgd_state = copy.deepcopy(sgd.state_dict())
     expected_loss_state = copy.deepcopy(loss_fn.state_dict())
 
+    expected_rng_state = copy.deepcopy(RNGState.capture())
+
     cfg_path, ckpt_path = make_checkpoint
     checkpoint = ckpt.load_checkpoint(ckpt_path)
     ckpt.restore_state_from_checkpoint(mlp, sgd, loss_fn, checkpoint)
@@ -204,3 +146,6 @@ def test_restore_state(
     assert_state_close(expected_mlp_state, actual_mlp_state)
     assert_state_close(expected_sgd_state, actual_sgd_state)
     assert_state_close(expected_loss_state, actual_loss_state)
+
+    actual_rng_state = RNGState.capture()
+    assert expected_rng_state == actual_rng_state
