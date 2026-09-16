@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from experiment_config import ModuleConfig
+from experiment_runner.experiment_config import ModuleConfig
 
 
 OPTIMIZERS = {

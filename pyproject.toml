@@ -1,5 +1,5 @@
 [project]
-name = "torchrunner"
+name = "experiment_runner"
 version = "0.1.0"
 description = "A tool for running experiments for PyTorch models."
 authors = [
@@ -18,3 +18,6 @@ dependencies = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.setuptools.packages.find]
+where = ["src"]

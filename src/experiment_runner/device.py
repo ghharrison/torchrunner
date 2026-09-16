@@ -1,6 +1,6 @@
 from types import ModuleType
 
-from experiment_config import ExperimentConfig
+from experiment_runner.experiment_config import ExperimentConfig
 import torch
 
 

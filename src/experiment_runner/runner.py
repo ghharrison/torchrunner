@@ -7,12 +7,12 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.types import Number
 
-import ckpt_utils
-from device import get_device
-from experiment_config import ExperimentConfig
-from model import get_module
-from loss import get_loss_fn
-from optimizer import create_optimizer
+import experiment_runner.ckpt_utils as ckpt_utils
+from experiment_runner.device import get_device
+from experiment_runner.experiment_config import ExperimentConfig
+from experiment_runner.model import get_module
+from experiment_runner.loss import get_loss_fn
+from experiment_runner.optimizer import create_optimizer
 
 
 class Runner:

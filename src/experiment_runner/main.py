@@ -7,10 +7,10 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from argparse_utils import parse_args
-from datasets.fashionmnist import create_loader
-from experiment_config import ExperimentConfig
-from runner import Runner
+from experiment_runner.argparse_utils import parse_args
+from experiment_runner.datasets.fashionmnist import create_loader
+from experiment_runner.experiment_config import ExperimentConfig
+from experiment_runner.runner import Runner
 
 
 @dataclass(frozen=True)

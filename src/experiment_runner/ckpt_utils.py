@@ -11,8 +11,8 @@ import yaml
 from torch.optim import Optimizer
 from torch.nn import Module
 
-from experiment_config import ExperimentConfig
-from loss import CallableLoss
+from experiment_runner.experiment_config import ExperimentConfig
+from experiment_runner.loss import CallableLoss
 
 
 CONFIG_FILENAME: str = "config.yaml"

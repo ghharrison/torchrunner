@@ -2,8 +2,8 @@ from typing import Mapping
 
 from torch import nn
 
-import mlp
-from experiment_config import ExperimentConfig
+import experiment_runner.mlp as mlp
+from experiment_runner.experiment_config import ExperimentConfig
 
 MODELS: Mapping[str, nn.Module] = {
     "mlp": mlp.MLPModule,
