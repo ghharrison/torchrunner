@@ -45,13 +45,6 @@ def test_log_metrics(tmp_path: Path) -> None:
             assert row[key] == str(value)
 
 
-@pytest.fixture
-def make_checkpoint(make_state):
-    config, state = make_state
-    cfg_path, ckpt_path = ckpt.save_state(**state)
-    return cfg_path, ckpt_path
-
-
 def test_save_state(
         mlp_setup,
         sgd_setup,
@@ -69,9 +62,9 @@ def test_save_state(
     - Assert that saving to the same file raises a `FileExistsError`
     - Read the checkpoint and assert all the values match
     """
-    mlp_params, mlp_config, mlp = mlp_setup
-    sgd_params, sgd_config, sgd = sgd_setup
-    loss_config, loss_fn = loss_setup
+    _, mlp = mlp_setup
+    _, sgd = sgd_setup
+    _, loss_fn = loss_setup
 
     config, state = make_state
 
@@ -114,7 +107,6 @@ def test_restore_state(
         mlp_setup,
         sgd_setup,
         loss_setup,
-        make_state,
         make_checkpoint,
 ):
     """
@@ -123,11 +115,9 @@ def test_restore_state(
     - restore state and assert equality between state dicts and
       equality of each aspect of RNG state
     """
-    mlp_params, mlp_config, mlp = mlp_setup
-    sgd_params, sgd_config, sgd = sgd_setup
-    loss_config, loss_fn = loss_setup
-
-    config, state = make_state
+    _, mlp = mlp_setup
+    _, sgd = sgd_setup
+    _, loss_fn = loss_setup
 
     expected_mlp_state = copy.deepcopy(mlp.state_dict())
     expected_sgd_state = copy.deepcopy(sgd.state_dict())
@@ -135,7 +125,7 @@ def test_restore_state(
 
     expected_rng_state = copy.deepcopy(RNGState.capture())
 
-    cfg_path, ckpt_path = make_checkpoint
+    _, ckpt_path = make_checkpoint
     checkpoint = ckpt.load_checkpoint(ckpt_path)
     ckpt.restore_state_from_checkpoint(mlp, sgd, loss_fn, checkpoint)
 

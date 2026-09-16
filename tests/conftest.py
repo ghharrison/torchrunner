@@ -2,6 +2,7 @@ import pytest
 import torch
 from torch.optim import SGD
 
+from experiment_runner.ckpt_utils import save_state
 from experiment_runner.experiment_config import ModuleConfig, ExperimentConfig
 from experiment_runner.mlp import MLPModule
 
@@ -15,7 +16,7 @@ def mlp_setup():
     }
     mlp_config = ModuleConfig(type='mlp', params=mlp_params)
     mlp = MLPModule(**mlp_params)
-    return mlp_params, mlp_config, mlp
+    return mlp_config, mlp
 
 
 @pytest.fixture
@@ -24,7 +25,7 @@ def sgd_setup(mlp_setup):
     sgd_params = {'lr': 0.001}
     sgd_config = ModuleConfig(type='sgd', params=sgd_params)
     sgd = SGD(mlp.parameters())
-    return sgd_params, sgd_config, sgd
+    return sgd_config, sgd
 
 
 @pytest.fixture
@@ -35,11 +36,12 @@ def loss_setup():
 
 
 @pytest.fixture
-def experiment_config(mlp_setup, sgd_setup, loss_setup):
-    _, mlp_config, _ = mlp_setup
-    _, sgd_config, _ = sgd_setup
-    _, loss_config, _ = loss_setup
+def experiment_config(tmp_path, mlp_setup, sgd_setup, loss_setup):
+    mlp_config, _ = mlp_setup
+    sgd_config, _ = sgd_setup
+    _, loss_config = loss_setup
     config = ExperimentConfig(
+        experiments_root=tmp_path,
         model=mlp_config,
         optimizer=sgd_config,
         loss_fn=loss_config,
@@ -48,27 +50,28 @@ def experiment_config(mlp_setup, sgd_setup, loss_setup):
 
 
 @pytest.fixture
-def make_state(tmp_path_factory, mlp_setup, sgd_setup, loss_setup):
-    mlp_params, mlp_config, mlp = mlp_setup
-    sgd_params, sgd_config, sgd = sgd_setup
-    loss_config, loss_fn = loss_setup
+def make_state(tmp_path, mlp_setup, sgd_setup, loss_setup, experiment_config):
+    _, mlp = mlp_setup
+    _, sgd = sgd_setup
+    _, loss_fn = loss_setup
 
-    config = ExperimentConfig(
-        model=mlp_config,
-        optimizer=sgd_config,
-        loss_fn=loss_config,
-    )
-
-    run_dir = tmp_path_factory.mktemp("run")
+    run_dir = tmp_path / "run"
     checkpoint_dir = run_dir / "checkpoint"
-    checkpoint_dir.mkdir()
+    checkpoint_dir.mkdir(parents=True)
     state = {
         'model': mlp,
         'optimizer': sgd,
         'loss_fn': loss_fn,
         'epoch': 0,
-        'config': config,
+        'config': experiment_config,
         'run_dir': run_dir,
         'checkpoint_dir': checkpoint_dir,
     }
-    return config, state
+    return state
+
+
+@pytest.fixture
+def make_checkpoint(make_state):
+    _, state = make_state
+    cfg_path, ckpt_path = save_state(**state)
+    return cfg_path, ckpt_path
