@@ -1,3 +1,4 @@
+experiments_root: experiments
 experiment_name: default
 batch_size: 64
 epochs: 10

@@ -40,7 +40,7 @@ class Runner:
             run_dir.mkdir(parents=True)
             return run_dir
 
-        self.experiments_root: Path = Path("experiments")
+        self.experiments_root: Path = Path(config.experiments_root)
         self.experiment_dir: Path = (
             self.experiments_root / self.config.experiment_name
         )
