@@ -24,14 +24,14 @@ def sgd_setup(mlp_setup):
     _, mlp = mlp_setup
     sgd_params = {'lr': 0.001}
     sgd_config = ModuleConfig(type='sgd', params=sgd_params)
-    sgd = SGD(mlp.parameters())
+    sgd = SGD(mlp.parameters(), **sgd_config.params)
     return sgd_config, sgd
 
 
 @pytest.fixture
 def loss_setup():
     loss_config = ModuleConfig(type='crossentropy', params={})
-    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_fn = torch.nn.CrossEntropyLoss(**loss_config.params)
     return loss_config, loss_fn
 
 
