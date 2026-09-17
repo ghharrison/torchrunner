@@ -21,7 +21,7 @@ def mlp_setup():
 
 @pytest.fixture
 def sgd_setup(mlp_setup):
-    _, _, mlp = mlp_setup
+    _, mlp = mlp_setup
     sgd_params = {'lr': 0.001}
     sgd_config = ModuleConfig(type='sgd', params=sgd_params)
     sgd = SGD(mlp.parameters())
@@ -39,9 +39,9 @@ def loss_setup():
 def experiment_config(tmp_path, mlp_setup, sgd_setup, loss_setup):
     mlp_config, _ = mlp_setup
     sgd_config, _ = sgd_setup
-    _, loss_config = loss_setup
+    loss_config, _ = loss_setup
     config = ExperimentConfig(
-        experiments_root=tmp_path,
+        experiments_root=str(tmp_path),
         model=mlp_config,
         optimizer=sgd_config,
         loss_fn=loss_config,
@@ -72,6 +72,6 @@ def make_state(tmp_path, mlp_setup, sgd_setup, loss_setup, experiment_config):
 
 @pytest.fixture
 def make_checkpoint(make_state):
-    _, state = make_state
+    state = make_state
     cfg_path, ckpt_path = save_state(**state)
     return cfg_path, ckpt_path

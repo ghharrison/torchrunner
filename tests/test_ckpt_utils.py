@@ -51,6 +51,7 @@ def test_save_state(
         loss_setup,
         make_state,
         make_checkpoint,
+        experiment_config,
 ) -> None:
     """
     - Create a temporary run dir and a temporary
@@ -66,11 +67,9 @@ def test_save_state(
     _, sgd = sgd_setup
     _, loss_fn = loss_setup
 
-    config, state = make_state
-
     cfg_path, ckpt_path = make_checkpoint
     with pytest.raises(FileExistsError):
-        ckpt.save_state(**state)
+        ckpt.save_state(**make_state)
 
     checkpoint = ckpt.load_checkpoint(ckpt_path)
 
@@ -92,7 +91,7 @@ def test_save_state(
         )
 
     # Config equality checks
-    assert checkpoint.config == asdict(config)
+    assert checkpoint.config == asdict(experiment_config)
     with open(cfg_path, "r") as f:
         yaml_config = yaml.safe_load(f)
         assert yaml_config == checkpoint.config

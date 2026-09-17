@@ -60,13 +60,16 @@ class Runner:
         config = ExperimentConfig.from_dict(
             checkpoint.config,
         )
-        runner: Runner = cls(experiment_config=config)
+        runner: Runner = cls(config)
         runner.epoch = checkpoint.epoch + 1
 
         print(f"resuming training from epoch {runner.epoch}")
 
         ckpt_utils.restore_state_from_checkpoint(
-            runner.model, runner.optimizer, checkpoint,
+            runner.model,
+            runner.optimizer,
+            runner.loss_fn,
+            checkpoint,
         )
 
         return runner

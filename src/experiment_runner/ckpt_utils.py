@@ -154,7 +154,7 @@ def save_checkpoint(
 
 
 def load_checkpoint(
-        checkpoint_path: str,
+        checkpoint_path: Path,
 ) -> RunCheckpoint:
     checkpoint_dict: Mapping = torch.load(checkpoint_path)
     checkpoint: RunCheckpoint = RunCheckpoint(**checkpoint_dict)

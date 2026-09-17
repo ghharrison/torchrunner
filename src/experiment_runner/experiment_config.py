@@ -22,11 +22,15 @@ class ExperimentConfig:
     device: str = "cpu"
 
     @classmethod
+    def from_dict(cls, config_dict: Mapping[str, Any]) -> "ExperimentConfig":
+        config_dict['model'] = ModuleConfig(**config_dict.get("model", {}))
+        config_dict['loss_fn'] = ModuleConfig(**config_dict.get("loss_fn", {}))
+        config_dict['optimizer'] = ModuleConfig(**config_dict.get("optimizer", {}))  # noqa
+
+        return cls(**config_dict)
+
+    @classmethod
     def from_yaml(cls, config_path: str) -> "ExperimentConfig":
         with open(config_path, 'r') as file:
             config: Mapping[str, Any] = yaml.safe_load(file)
-        config['model'] = ModuleConfig(**config.get("model", {}))
-        config['loss_fn'] = ModuleConfig(**config.get("loss_fn", {}))
-        config['optimizer'] = ModuleConfig(**config.get("optimizer", {}))
-
-        return cls(**config)
+            return cls.from_dict(config)
