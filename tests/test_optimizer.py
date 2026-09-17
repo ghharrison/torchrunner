@@ -5,8 +5,7 @@ from experiment_runner.optimizer import create_optimizer
 from experiment_runner.experiment_config import ModuleConfig
 
 
-def test_get_device(experiment_config, mlp_setup):
-    _, mlp = mlp_setup
+def test_get_device(experiment_config, mlp) -> None:
     optimizer: Optimizer = create_optimizer(
         mlp,
         experiment_config.optimizer,

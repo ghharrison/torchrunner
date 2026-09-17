@@ -3,7 +3,7 @@ import pytest
 from experiment_runner.loss import get_loss_fn
 
 
-def test_get_loss_fn(experiment_config):
+def test_get_loss_fn(experiment_config) -> None:
     loss_fn = get_loss_fn(experiment_config)
     assert callable(loss_fn)
 

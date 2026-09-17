@@ -1,5 +1,4 @@
 import torch
-from torch import Tensor
 
 from experiment_runner.mlp import MLPModule
 
@@ -9,7 +8,7 @@ LINEAR_LAYER_SIZE = 512
 N_CLASSES = 10
 
 
-def test_mlp_module():
+def test_mlp_module() -> None:
     mlp = MLPModule(
         image_dim=FASHION_IMAGE_DIM,
         linear_layer_size=LINEAR_LAYER_SIZE,
@@ -17,6 +16,6 @@ def test_mlp_module():
     )
 
     # random batch of 32 tensors of size (1, 28, 28)
-    X: Tensor = torch.randn(32, 1, FASHION_IMAGE_DIM, FASHION_IMAGE_DIM)
-    prediction: Tensor = mlp(X)
+    X = torch.randn(32, 1, FASHION_IMAGE_DIM, FASHION_IMAGE_DIM)
+    prediction = mlp(X)
     assert prediction.shape == (32, N_CLASSES)

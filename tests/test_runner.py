@@ -7,7 +7,7 @@ from experiment_runner.ckpt_utils import RunCheckpoint
 from experiment_runner.runner import Runner
 
 
-def test_create_runner(experiment_config):
+def test_create_runner(experiment_config) -> None:
     """
     Construct a `Runner` object. Check:
     - Attributes are initialized properly

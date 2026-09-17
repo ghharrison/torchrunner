@@ -1,16 +1,20 @@
 import copy
 import csv
 import random
+from collections.abc import Mapping
 from dataclasses import asdict
 from pathlib import Path
-from typing import Mapping
+from typing import Any
 
 import pytest
 import yaml
+from torch import nn
+from torch.optim import Optimizer
 from torch.testing import assert_close
 
 import experiment_runner.ckpt_utils as ckpt
 from experiment_runner.ckpt_utils import RNGState
+from experiment_runner.experiment_config import ExperimentConfig
 
 
 def test_log_metrics(tmp_path: Path) -> None:
@@ -21,15 +25,15 @@ def test_log_metrics(tmp_path: Path) -> None:
       values to the existing file
     - Read from the file and assert that it matches
     """
-    epoch: int = random.randint(0, 99)
-    train_loss: float = random.uniform(0, 1)
-    test_loss: float = random.uniform(0, 1)
+    epoch = random.randint(0, 99)
+    train_loss = random.uniform(0, 1)
+    test_loss = random.uniform(0, 1)
     expected = {
         'epoch': epoch,
         'train_loss': train_loss,
         'test_loss': test_loss,
     }
-    metrics_file: Path = ckpt.log_metrics(
+    metrics_file = ckpt.log_metrics(
         run_dir=tmp_path,
         **expected
     )
@@ -40,18 +44,22 @@ def test_log_metrics(tmp_path: Path) -> None:
     with open(metrics_file, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         assert set(reader.fieldnames) == expected.keys()
-        row: Mapping[str, str] = reader.__next__()
+        row: Mapping[str, str] = next(reader)
         for key, value in expected.items():
             assert row[key] == str(value)
 
+        # There should be only 1 row in the CSV
+        with pytest.raises(StopIteration):
+            next(reader)
+
 
 def test_save_state(
-        mlp_setup,
-        sgd_setup,
-        loss_setup,
-        make_state,
-        make_checkpoint,
-        experiment_config,
+        mlp: nn.Module,
+        sgd: Optimizer,
+        loss_fn: nn.Module,
+        make_state: dict[str, Any],
+        make_checkpoint: tuple[Path, Path],
+        experiment_config: ExperimentConfig,
 ) -> None:
     """
     - Create a temporary run dir and a temporary
@@ -63,9 +71,6 @@ def test_save_state(
     - Assert that saving to the same file raises a `FileExistsError`
     - Read the checkpoint and assert all the values match
     """
-    _, mlp = mlp_setup
-    _, sgd = sgd_setup
-    _, loss_fn = loss_setup
 
     cfg_path, ckpt_path = make_checkpoint
     with pytest.raises(FileExistsError):
@@ -93,7 +98,7 @@ def test_save_state(
     # Config equality checks
     assert checkpoint.config == asdict(experiment_config)
     with open(cfg_path, "r") as f:
-        yaml_config = yaml.safe_load(f)
+        yaml_config: Mapping[str, Any] = yaml.safe_load(f)
         assert yaml_config == checkpoint.config
 
 
@@ -103,20 +108,17 @@ def assert_state_close(expected: Mapping, actual: Mapping) -> None:
 
 
 def test_restore_state(
-        mlp_setup,
-        sgd_setup,
-        loss_setup,
+        mlp,
+        sgd,
+        loss_fn,
         make_checkpoint,
-):
+) -> None:
     """
     - Create state dicts for optimizer, model, RNG state
     - Create and save a temporary checkpoint
     - restore state and assert equality between state dicts and
       equality of each aspect of RNG state
     """
-    _, mlp = mlp_setup
-    _, sgd = sgd_setup
-    _, loss_fn = loss_setup
 
     expected_mlp_state = copy.deepcopy(mlp.state_dict())
     expected_sgd_state = copy.deepcopy(sgd.state_dict())
