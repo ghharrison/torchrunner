@@ -17,9 +17,14 @@ def create_optimizer(
         optimizer_cls = OPTIMIZERS[optimizer_cfg.type.lower()]
     except KeyError:
         raise ValueError(
-            f"Unsupported optimizer type {ModuleConfig.type}. "
+            f"Unsupported optimizer type {optimizer_cfg.type}. "
             f"Current supported optimizers: {",".join(OPTIMIZERS.keys())}"
         )
-
-    optimizer = optimizer_cls(model.parameters(), **optimizer_cfg.params)
+    try:
+        optimizer = optimizer_cls(model.parameters(), **optimizer_cfg.params)
+    except TypeError as err:
+        raise ValueError(
+            f"Could not create optimizer of type `{optimizer_cls.__name__}` "
+            f"with parameters {optimizer_cfg.params}: {err}"
+        )
     return optimizer
