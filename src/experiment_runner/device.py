@@ -5,7 +5,7 @@ import torch
 
 
 def get_device(config: ExperimentConfig) -> torch.device:
-    device_name: str = config.device.strip().lower()
+    device_name = config.device.strip().lower()
 
     if device_name == 'cpu':
         return torch.device('cpu')

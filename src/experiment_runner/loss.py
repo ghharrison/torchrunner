@@ -1,4 +1,4 @@
-from typing import Callable, Mapping, TypeAlias
+from typing import Any, Callable, Mapping, TypeAlias, TypeGuard, Protocol
 
 import torch
 from torch import nn
@@ -10,6 +10,27 @@ LOSS_FUNCTIONS: Mapping[str, nn.Module] = {
 }
 
 CallableLoss: TypeAlias = Callable[..., torch.Tensor]
+
+
+class CallableLossWithStateDict(Protocol):
+    def __call__(self, *args: Any, **kwargs: Any) -> torch.Tensor:
+        ...
+
+    def load_state_dict(
+        self,
+        state_dict: dict[str, Any],
+        **kwargs: Any,
+    ) -> Any:
+        ...
+
+
+def has_load_state_dict(
+    loss_fn: CallableLoss,
+) -> TypeGuard[CallableLossWithStateDict]:
+    return (
+        hasattr(loss_fn, "load_state_dict")
+        and callable(loss_fn.load_state_dict)
+    )
 
 
 def get_loss_fn(

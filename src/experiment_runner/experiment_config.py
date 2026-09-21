@@ -16,9 +16,9 @@ class ExperimentConfig:
     experiment_name: str = "default"
     batch_size: int = 64
     epochs: int = 10
-    model: ModuleConfig = field(default_factory=ModuleConfig)
-    loss_fn: ModuleConfig = field(default_factory=ModuleConfig)
-    optimizer: ModuleConfig = field(default_factory=ModuleConfig)
+    model: ModuleConfig
+    loss_fn: ModuleConfig
+    optimizer: ModuleConfig
     device: str = "cpu"
 
     @classmethod

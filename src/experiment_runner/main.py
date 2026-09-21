@@ -1,5 +1,4 @@
 import random
-from argparse import Namespace
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -54,7 +53,7 @@ def main(run_source: NewRun | ResumeRun) -> None:
 
 
 if __name__ == "__main__":
-    args: Namespace = parse_args()
+    args = parse_args()
     if args.config:
         config_path: str = args.config
         config = ExperimentConfig.from_yaml(config_path)

@@ -1,9 +1,9 @@
 from datetime import datetime
 from pathlib import Path
+from typing import Self
 
 import torch
-from torch import nn, Tensor
-from torch.optim import Optimizer
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torch.types import Number
 
@@ -23,15 +23,15 @@ class Runner:
         """
         Default constructor assumes new run
         """
-        self.config: ExperimentConfig = config
-        self.device: torch.Device = get_device(config)
-        self.model: nn.Module = get_module(config).to(self.device)
-        self.loss_fn: nn.Module = get_loss_fn(config).to(self.device)
-        self.optimizer: Optimizer = create_optimizer(
+        self.config = config
+        self.device = get_device(config)
+        self.model = get_module(config).to(self.device)
+        self.loss_fn = get_loss_fn(config).to(self.device)
+        self.optimizer = create_optimizer(
             self.model,
             self.config.optimizer,
         )
-        self.epoch: int = 0
+        self.epoch = 0
 
         def make_run_dirs() -> Path:
             timestamp: str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -49,18 +49,18 @@ class Runner:
         self.checkpoint_dir.mkdir(parents=True)
 
     @classmethod
-    def from_checkpoint(cls, checkpoint_path: Path) -> Runner:
+    def from_checkpoint(cls, checkpoint_path: Path) -> Self:
         """
         Alternative constructor assumes resuming from checkpoint
         """
         print(f"Restoring training from checkpoint at {checkpoint_path}")
-        checkpoint: ckpt_utils.RunCheckpoint = ckpt_utils.load_checkpoint(
+        checkpoint = ckpt_utils.load_checkpoint(
             checkpoint_path=checkpoint_path,
         )
         config = ExperimentConfig.from_dict(
             checkpoint.config,
         )
-        runner: Runner = cls(config)
+        runner = cls(config)
         runner.epoch = checkpoint.epoch + 1
 
         print(f"resuming training from epoch {runner.epoch}")

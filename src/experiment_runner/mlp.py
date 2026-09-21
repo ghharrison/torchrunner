@@ -12,8 +12,8 @@ class MLPModule(nn.Module):
                  linear_layer_size: int,
                  output_classes: int) -> None:
         super().__init__()
-        self.flatten: nn.Module = nn.Flatten()
-        self.model: nn.Module = nn.Sequential(
+        self.flatten = nn.Flatten()
+        self.model = nn.Sequential(
             nn.Linear(
                 in_features=image_dim**2,
                 out_features=linear_layer_size,

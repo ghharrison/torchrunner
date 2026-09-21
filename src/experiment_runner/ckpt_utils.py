@@ -1,8 +1,8 @@
 import os
 import random
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Any, List, Mapping, Tuple
+from typing import Any, Self
 
 import csv
 import numpy as np
@@ -12,21 +12,21 @@ from torch.optim import Optimizer
 from torch.nn import Module
 
 from experiment_runner.experiment_config import ExperimentConfig
-from experiment_runner.loss import CallableLoss
+from experiment_runner.loss import CallableLoss, has_load_state_dict
 
 
-CONFIG_FILENAME: str = "config.yaml"
+CONFIG_FILENAME = "config.yaml"
 
 
 @dataclass(frozen=True)
 class RNGState:
-    python: Tuple = field(default_factory=tuple)
-    numpy: Mapping = field(default_factory=dict)
-    torch: torch.Tensor = field(default_factory=torch.Tensor)
-    cuda: List[torch.Tensor] = field(default_factory=list)
+    python: tuple[Any, ...]
+    numpy: dict[str, Any]
+    torch: torch.Tensor
+    cuda: list[torch.Tensor]
 
     @classmethod
-    def capture(cls) -> RNGState:
+    def capture(cls) -> Self:
         """
         Build an instance of `RNGState` whose attributes
         contain the current RNG state.
@@ -48,7 +48,7 @@ class RNGState:
         torch.set_rng_state(self.torch)
         torch.cuda.set_rng_state_all(self.cuda)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, RNGState):
             return NotImplemented
 
@@ -66,11 +66,11 @@ class RNGState:
 @dataclass(frozen=True)
 class RunCheckpoint:
     epoch: int
-    config: Mapping = field(default_factory=dict)
-    model_state_dict: Mapping = field(default_factory=dict)
-    optimizer_state_dict: Mapping = field(default_factory=dict)
-    loss_state_dict: Mapping = field(default_factory=dict)
-    rng_state: Mapping = field(default_factory=dict)
+    config: dict[str, Any]
+    model_state_dict: dict[str, torch.Tensor]
+    optimizer_state_dict: dict[str, Any]
+    loss_state_dict: dict[str, Any]
+    rng_state: dict[str, Any]
 
 
 def save_state(
@@ -81,7 +81,7 @@ def save_state(
         config: ExperimentConfig,
         run_dir: Path,
         checkpoint_dir: Path
-) -> Tuple[Path, Path]:
+) -> tuple[Path, Path]:
     """
     Save the following to the run directory:
     - experiment config (YAML)
@@ -91,8 +91,8 @@ def save_state(
     """
 
     # dump config to YAML
-    config_dict: dict[str, Any] = asdict(config)
-    config_path: Path = run_dir / CONFIG_FILENAME
+    config_dict = asdict(config)
+    config_path = run_dir / CONFIG_FILENAME
     if os.path.exists(config_path):
         raise FileExistsError(f"Config file {config_path} exists.")
 
@@ -107,7 +107,7 @@ def save_state(
     )
 
     # save model checkpoint
-    checkpoint_path: Path = checkpoint_dir / f'epoch_{epoch:03d}.pt'
+    checkpoint_path = checkpoint_dir / f'epoch_{epoch:03d}.pt'
     checkpoint_path = save_checkpoint(
         config=config,
         model=model,
@@ -156,9 +156,7 @@ def save_checkpoint(
 def load_checkpoint(
         checkpoint_path: Path,
 ) -> RunCheckpoint:
-    checkpoint_dict: Mapping = torch.load(checkpoint_path)
-    checkpoint: RunCheckpoint = RunCheckpoint(**checkpoint_dict)
-    return checkpoint
+    return RunCheckpoint(**torch.load(checkpoint_path))
 
 
 def restore_state_from_checkpoint(
@@ -169,12 +167,7 @@ def restore_state_from_checkpoint(
 ) -> None:
     model.load_state_dict(checkpoint.model_state_dict)
     optimizer.load_state_dict(checkpoint.optimizer_state_dict)
-    if hasattr(loss_fn, 'load_state_dict'):
-        if not callable(getattr(loss_fn, 'load_state_dict')):
-            raise ValueError(
-                f"Loss function {loss_fn} had unexpected non-callable"
-                f" attribute `load_state_dict`"
-            )
+    if has_load_state_dict(loss_fn):
         loss_fn.load_state_dict(checkpoint.loss_state_dict)
 
     rng_state = RNGState(**checkpoint.rng_state)

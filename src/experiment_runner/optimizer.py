@@ -1,10 +1,11 @@
 import torch
 from torch import nn
+from torch.optim import Optimizer
 
 from experiment_runner.experiment_config import ModuleConfig
 
 
-OPTIMIZERS = {
+OPTIMIZERS: dict[str, type[Optimizer]] = {
     "sgd": torch.optim.SGD,
 }
 

@@ -5,7 +5,7 @@ from torch import nn
 import experiment_runner.mlp as mlp
 from experiment_runner.experiment_config import ExperimentConfig
 
-MODELS: Mapping[str, nn.Module] = {
+MODELS: Mapping[str, type[nn.Module]] = {
     "mlp": mlp.MLPModule,
 }
 
@@ -17,7 +17,7 @@ def get_module(
     model_params = model_config.params
 
     try:
-        module_cls: type = MODELS[model_type.strip().lower()]
+        module_cls = MODELS[model_type.strip().lower()]
     except KeyError:
         raise ValueError(
             f"Unsupported model type {model_type}. "
@@ -25,7 +25,7 @@ def get_module(
         )
 
     try:
-        model: nn.Module = module_cls(**model_params)
+        model = module_cls(**model_params)
     except TypeError as err:
         raise ValueError(
             f"Module {module_cls.__name__} could not be initialized "
