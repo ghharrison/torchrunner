@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torch.types import Number
 
 import experiment_runner.ckpt_utils as ckpt_utils
+from experiment_runner.ckpt_utils import RunCheckpoint
 from experiment_runner.device import get_device
 from experiment_runner.experiment_config import ExperimentConfig
 from experiment_runner.model import get_module
@@ -21,7 +22,7 @@ class Runner:
             config: ExperimentConfig,
     ) -> None:
         """
-        Default constructor assumes new run
+        Default constructor assumes a fresh run is being created
         """
         self.config = config
         self.device = get_device(config)
@@ -33,25 +34,19 @@ class Runner:
         )
         self.epoch = 0
 
-        def make_run_dirs() -> Path:
-            timestamp: str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            run_dir: Path = self.experiment_dir / timestamp
-            self.experiment_dir.mkdir(parents=True, exist_ok=True)
-            run_dir.mkdir(parents=True)
-            return run_dir
-
         self.experiments_root: Path = Path(config.experiments_root)
         self.experiment_dir: Path = (
             self.experiments_root / self.config.experiment_name
         )
-        self.run_dir: Path = make_run_dirs()
+        self.run_dir: Path = self._create_run_dirs()
         self.checkpoint_dir: Path = self.run_dir / "checkpoints"
         self.checkpoint_dir.mkdir(parents=True)
 
     @classmethod
     def from_checkpoint(cls, checkpoint_path: Path) -> Self:
         """
-        Alternative constructor assumes resuming from checkpoint
+        Alternative constructor assumes the run is being created
+        from a previously existing run
         """
         print(f"Restoring training from checkpoint at {checkpoint_path}")
         checkpoint = ckpt_utils.load_checkpoint(
@@ -61,24 +56,31 @@ class Runner:
             checkpoint.config,
         )
         runner = cls(config)
-        runner.epoch = checkpoint.epoch + 1
-
-        print(f"resuming training from epoch {runner.epoch}")
-
-        ckpt_utils.restore_state_from_checkpoint(
-            runner.model,
-            runner.optimizer,
-            runner.loss_fn,
-            checkpoint,
-        )
-
+        runner._restore_from_checkpoint(checkpoint)
         return runner
 
+    def _create_run_dirs(self) -> Path:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.experiment_dir.mkdir(parents=True, exist_ok=True)
+        run_dir = self.experiment_dir / timestamp
+        run_dir.mkdir(parents=True)
+        (run_dir / "checkpoints").mkdir()
+        return run_dir
+
+    def _restore_from_checkpoint(self, checkpoint: RunCheckpoint) -> None:
+        self.epoch = checkpoint.epoch + 1
+        ckpt_utils.restore_state_from_checkpoint(
+            self.model,
+            self.optimizer,
+            self.loss_fn,
+            checkpoint,
+        )
+        print(f"resuming training from epoch {self.epoch}")
+
     def train_step(self, train_loader: DataLoader) -> float:
-        # Set the model to TRAIN mode
         self.model.train()
-        size: int = len(train_loader.dataset)
-        epoch_loss: Number = 0
+        size = len(train_loader.dataset)
+        epoch_loss = 0
 
         for batch, (X, y) in enumerate(train_loader):
             X: Tensor
@@ -90,7 +92,6 @@ class Runner:
             prediction: Tensor = self.model(X)
             loss: Tensor = self.loss_fn(prediction, y)
 
-            # Backpropagation
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
@@ -108,29 +109,20 @@ class Runner:
         return epoch_loss
 
     def eval_step(self, test_loader) -> float:
-        # set the model to EVAL mode, which changes how some modules behave
-        # Important ones are Batch normalization (since inference doesn't have
-        # training minibatches) and Dropout (since randomly nixing connections
-        # is undesirable during inference)
-
         self.model.eval()
-        size: int = len(test_loader.dataset)
-        num_batches: int = len(test_loader)
-        test_loss: Number = 0
-        correct: int = 0
+        size = len(test_loader.dataset)
+        num_batches = len(test_loader)
+        test_loss = 0
+        correct = 0
 
-        # We use the context manager `torch.no_grad()` to disable
-        # gradient computation since we're no longer updating weights
         with torch.no_grad():
             for X, y in test_loader:
                 X: Tensor = X.to(self.device)
                 y: Tensor = y.to(self.device)
                 prediction: Tensor = self.model(X)
 
-                # `.item()` converts a single-value tensor to a scalar
                 test_loss += self.loss_fn(prediction, y).item()
 
-                # "argmax" = "index of the maximum"
                 batch_correct: Tensor = (prediction.argmax(1) == y)
                 correct += batch_correct.type(torch.float).sum().item()
 
@@ -141,11 +133,11 @@ class Runner:
         return test_loss
 
     def train(self, train_loader, test_loader) -> None:
-        start_epoch: int = self.epoch
+        start_epoch = self.epoch
         for t in range(start_epoch, self.config.epochs):
             print(f"Epoch {t}\n-------------------------------")
-            train_loss: float = self.train_step(train_loader)
-            test_loss: float = self.eval_step(test_loader)
+            train_loss = self.train_step(train_loader)
+            test_loss = self.eval_step(test_loader)
             ckpt_utils.save_state(
                 config=self.config,
                 model=self.model,
