@@ -1,5 +1,9 @@
+"""
+Main entrypoint for the experiment runner.
+
+Invoked via `python -m experiment_runner` followed by command line args.
+"""
 import random
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -12,17 +16,13 @@ from experiment_runner.experiment_config import ExperimentConfig
 from experiment_runner.runner import Runner
 
 
-@dataclass(frozen=True)
-class NewRun:
-    config: ExperimentConfig
+def set_all_seeds(seed: float) -> None:
+    """
+    Set all RNG seeds to the given value and attempt to run deterministically.
 
-
-@dataclass(frozen=True)
-class ResumeRun:
-    checkpoint_path: Path
-
-
-def set_all_seeds(seed: float):
+    Args:
+        seed: A float to be used as the RNG seed.
+    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -32,14 +32,25 @@ def set_all_seeds(seed: float):
     torch.backends.cudnn.benchmark = False
 
 
-def main(run_source: NewRun | ResumeRun) -> None:
+def main(run_source: ExperimentConfig | Path) -> None:
+    """
+    Run, using either a config for a new run or a checkpoint path
+    to continue from an existing checkpoint.
+
+    Args:
+        run_source: An `ExperimentConfig` or `Path`.
+    """
     match run_source:
-        case NewRun(config):
+        case ExperimentConfig():
             runner = Runner(
-                config=config,
+                config=run_source,
             )
-        case ResumeRun(checkpoint_path):
-            runner = Runner.from_checkpoint(checkpoint_path)
+        case Path():
+            runner = Runner.from_checkpoint(run_source)
+        case _:
+            raise TypeError(
+                f"Input source was of unsupported type {type(run_source)}",
+            )
 
     train_dataloader: DataLoader = create_loader(
         train=True,
@@ -56,12 +67,9 @@ if __name__ == "__main__":
     args = parse_args()
     if args.config:
         config_path: str = args.config
-        config = ExperimentConfig.from_yaml(config_path)
-        source = NewRun(config)
+        source = ExperimentConfig.from_yaml(config_path)
     else:
         if not args.checkpoint:
             raise RuntimeError("Must specify checkpoint or config")
-        checkpoint_path: str = args.checkpoint
-        source = ResumeRun(checkpoint_path)
-
+        source = Path(args.checkpoint)
     main(run_source=source)

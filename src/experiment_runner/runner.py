@@ -1,3 +1,10 @@
+"""
+Runner class for handling experiment state.
+
+Requires an `ExperimentConfig` or a path to a checkpoint
+to initialize. Once created, calling `train()` with training and
+evaluation `DataLoader` objects provided will handle the rest.
+"""
 from datetime import datetime
 from pathlib import Path
 from typing import Self
@@ -22,7 +29,11 @@ class Runner:
             config: ExperimentConfig,
     ) -> None:
         """
-        Default constructor assumes a fresh run is being created
+        Default constructor. Used when starting a training run
+        from scratch.
+
+        Args:
+            config: an `ExperimentConfig`.
         """
         self.config = config
         self.device = get_device(config)
@@ -45,8 +56,13 @@ class Runner:
     @classmethod
     def from_checkpoint(cls, checkpoint_path: Path) -> Self:
         """
-        Alternative constructor assumes the run is being created
-        from a previously existing run
+        Alternative constructor. Initializes a new run as a continuation
+        of an existing run (which is represented by a checkpoint file).
+
+        Args:
+            checkpoint_path: a `pathlib.Path` to the experiment checkpoint.
+                (The checkpoint and other artifacts from the previous run
+                will not be modified.)
         """
         print(f"Restoring training from checkpoint at {checkpoint_path}")
         checkpoint = ckpt_utils.load_checkpoint(
@@ -78,6 +94,16 @@ class Runner:
         print(f"resuming training from epoch {self.epoch}")
 
     def train_step(self, train_loader: DataLoader) -> float:
+        """
+        Do a single training step, updating model parameters and
+        producing an epoch training loss.
+
+        Args:
+            train_loader: The training `DataLoader`.
+
+        Returns:
+            A `float` representing this epoch's training loss.
+        """
         self.model.train()
         size = len(train_loader.dataset)
         epoch_loss = 0
@@ -109,6 +135,16 @@ class Runner:
         return epoch_loss
 
     def eval_step(self, test_loader) -> float:
+        """
+        Do a single evaluation step, updating model parameters and
+        producing an epoch evaluation loss.
+
+        Args:
+            test_loader: The evaluation `DataLoader`.
+
+        Returns:
+            A `float` representing this epoch's evaluation loss.
+        """
         self.model.eval()
         size = len(test_loader.dataset)
         num_batches = len(test_loader)
@@ -133,6 +169,15 @@ class Runner:
         return test_loss
 
     def train(self, train_loader, test_loader) -> None:
+        """
+        The main train/eval loop. Performs training and evaluation
+        once per epoch for the number of epochs determined by the
+        experiment config.
+
+        Args:
+            train_loader: the `DataLoader` for training data.
+            test_loader: the 'DataLoader' for the evaluation data.
+        """
         start_epoch = self.epoch
         for t in range(start_epoch, self.config.epochs):
             print(f"Epoch {t}\n-------------------------------")

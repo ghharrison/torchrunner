@@ -1,3 +1,10 @@
+"""
+A simple MLP-like `nn.Sequential` module.
+
+Intended for use with MNISTFashion dataset, but the input dimensions,
+linear layer size, and number of output classes are configurable.
+"""
+
 from torch import nn, Tensor
 
 

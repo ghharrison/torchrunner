@@ -1,3 +1,9 @@
+"""Utilities related to `torch.device`.
+
+The set of supported devices is inferred from the attributes of
+`torch.backends`.
+"""
+
 from types import ModuleType
 
 from experiment_runner.experiment_config import ExperimentConfig
@@ -5,6 +11,17 @@ import torch
 
 
 def get_device(config: ExperimentConfig) -> torch.device:
+    """
+    Read the configured device from an `ExperimentConfig` and return a
+    `torch.device` representing it. If the device is unavailable or is
+    not a supported backend, falls back to CPU.
+
+    Args:
+        config: An `ExperimentConfig` for the current experiment run.
+
+    Returns:
+        A `torch.device` instance.
+    """
     device_name = config.device.strip().lower()
 
     if device_name == 'cpu':

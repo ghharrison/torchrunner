@@ -1,3 +1,7 @@
+"""
+Creation of `torch.optim.Optimizer` for model training.
+"""
+
 import torch
 from torch import nn
 from torch.optim import Optimizer
@@ -13,7 +17,24 @@ OPTIMIZERS: dict[str, type[Optimizer]] = {
 def create_optimizer(
         model: nn.Module,
         optimizer_cfg: ModuleConfig,
-):
+) -> Optimizer:
+    """
+    Construct an optimizer for a model's parameters.
+
+    Args:
+        model: The `nn.Module` whose parameters will be optimized by the
+            created optimizer.
+
+        optimizer_cfg: a `ModuleConfig` defining the type and construction
+            parameters of the desired optimizer.
+
+    Returns: a `torch.optim.Optimizer`.
+
+    Raises:
+        `ValueError`: The configured optimizer is not a supported type, or
+            the optimizer could not be initialized with the configured
+            parameters.
+    """
     try:
         optimizer_cls = OPTIMIZERS[optimizer_cfg.type.lower()]
     except KeyError:

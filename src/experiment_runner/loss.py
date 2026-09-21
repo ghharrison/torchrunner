@@ -1,3 +1,11 @@
+"""
+Utilities and types related to loss functions.
+
+Defines a `CallableLoss` type that fits both simple loss
+functions and `nn.Module` losses like `nn.CrossEntropyLoss`.
+Also includes a `Protocol` and a `TypeGuard` to assist in static
+type checking.
+"""
 from typing import Any, Callable, Mapping, TypeAlias, TypeGuard, Protocol
 
 import torch
@@ -5,15 +13,18 @@ from torch import nn
 
 from experiment_runner.experiment_config import ExperimentConfig
 
-LOSS_FUNCTIONS: Mapping[str, nn.Module] = {
+CallableLoss: TypeAlias = Callable[..., torch.Tensor]
+
+LOSS_FUNCTIONS: Mapping[str, CallableLoss] = {
     "crossentropy": nn.CrossEntropyLoss,
 }
-
-CallableLoss: TypeAlias = Callable[..., torch.Tensor]
 
 
 class CallableLossWithStateDict(Protocol):
     def __call__(self, *args: Any, **kwargs: Any) -> torch.Tensor:
+        ...
+
+    def state_dict(self) -> dict[str, Any]:
         ...
 
     def load_state_dict(
@@ -24,17 +35,33 @@ class CallableLossWithStateDict(Protocol):
         ...
 
 
-def has_load_state_dict(
+def has_state_dict(
     loss_fn: CallableLoss,
 ) -> TypeGuard[CallableLossWithStateDict]:
+    """
+    Check that `loss_fn` has a callable `state_dict` and
+    supports calls to `load_state_dict`.
+    """
     return (
-        hasattr(loss_fn, "load_state_dict")
+        hasattr(loss_fn, "state_dict")
+        and callable(loss_fn.state_dict)
+        and hasattr(loss_fn, "load_state_dict")
         and callable(loss_fn.load_state_dict)
     )
 
 
 def get_loss_fn(
-        experiment_config: ExperimentConfig) -> nn.Module:
+        experiment_config: ExperimentConfig) -> CallableLoss:
+    """
+    Construct a `CallableLoss` matching the loss type in an experiment
+    config.
+
+    Args:
+        experiment_config: An `ExperimentConfig` for the current experiment.
+
+    Returns:
+        A `CallableLoss`, which is a `Callable[..., Tensor]`.
+    """
     loss_config = experiment_config.loss_fn
     loss_type = loss_config.type
     loss_params = loss_config.params
@@ -48,7 +75,7 @@ def get_loss_fn(
         )
 
     try:
-        loss_fn: nn.Module = module_cls(**loss_params)
+        loss_fn: CallableLoss = module_cls(**loss_params)
     except TypeError as err:
         raise ValueError(
             f"Module {module_cls.__name__} could not be initialized "
