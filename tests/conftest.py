@@ -81,13 +81,12 @@ def make_state(
         'loss_fn': loss_fn,
         'epoch': 0,
         'config': experiment_config,
-        'run_dir': run_dir,
         'checkpoint_dir': checkpoint_dir,
     }
     return state
 
 
 @pytest.fixture
-def make_checkpoint(make_state) -> tuple[Path, Path]:
-    cfg_path, ckpt_path = save_state(**make_state)
-    return cfg_path, ckpt_path
+def make_checkpoint(make_state) -> Path:
+    ckpt_path = save_state(**make_state)
+    return ckpt_path

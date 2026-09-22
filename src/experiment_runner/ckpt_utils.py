@@ -113,13 +113,36 @@ class RunCheckpoint:
     rng_state: dict[str, Any]
 
 
+def save_config(config: ExperimentConfig, run_dir: Path) -> Path:
+    """
+    Save the experiment config for the current training run to a YAML file.
+
+    Args:
+        config: an `ExperimentConfig` representing this experiment's
+            configuration.
+
+        run_dir: A `pathlib.Path` representing the directory for the current 
+            training run.
+
+    Returns:
+        A `pathlib.Path` pointing to the created config file.
+    """
+    config_dict = asdict(config)
+    config_path = run_dir / CONFIG_FILENAME
+    if os.path.exists(config_path):
+        raise FileExistsError(f"Config file {config_path} exists.")
+    with open(config_path, 'w') as config_file:
+        yaml.dump(config_dict, config_file, default_flow_style=False)
+
+    return config_path
+
+
 def save_state(
         model: Module,
         optimizer: Optimizer,
         loss_fn: CallableLoss,
         epoch: int,
         config: ExperimentConfig,
-        run_dir: Path,
         checkpoint_dir: Path
 ) -> tuple[Path, Path]:
     """
@@ -133,22 +156,12 @@ def save_state(
         epoch: An integer representing the current epoch.
         config: An `ExperimentConfig` containing the current experiment's
             configuration.
-        run_dir: A `pathlib.Path` representing the directory this experiment
-            run's artifacts will be logged to.
         checkpoint_dir: A `pathlib.Path` representing the directory storing
-            checkpoints. Typically will be a subdir of `run_dir`.
+            checkpoints.
 
     Returns:
-        A tuple of `pathlib.Path` representing the created config file and the
-        saved checkpoint file.
+        A `pathlib.Path` pointing to the the saved checkpoint file.
     """
-    # dump config to YAML file
-    config_dict = asdict(config)
-    config_path = run_dir / CONFIG_FILENAME
-    if os.path.exists(config_path):
-        raise FileExistsError(f"Config file {config_path} exists.")
-    with open(config_path, 'w') as config_file:
-        yaml.dump(config_dict, config_file, default_flow_style=False)
 
     # capture RNG state
     rng = RNGState.capture()
@@ -175,7 +188,7 @@ def save_state(
         run_checkpoint=checkpoint,
         checkpoint_path=checkpoint_path,
     )
-    return config_path, checkpoint_path
+    return checkpoint_path
 
 
 def save_checkpoint(

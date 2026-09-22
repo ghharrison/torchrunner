@@ -50,6 +50,7 @@ class Runner:
             self.experiments_root / self.config.experiment_name
         )
         self.run_dir: Path = self._create_run_dirs()
+        ckpt_utils.save_config(self.config, self.run_dir)
 
     @classmethod
     def from_checkpoint(cls, checkpoint_path: Path) -> Self:
@@ -134,7 +135,7 @@ class Runner:
         print(f"Training Error: \n Avg loss: {epoch_loss:>8f} \n")
         return epoch_loss
 
-    def eval_step(self, test_loader) -> float:
+    def eval_step(self, test_loader: DataLoader) -> float:
         """
         Do a single evaluation step, updating model parameters and
         producing an epoch evaluation loss.
@@ -168,7 +169,7 @@ class Runner:
 
         return test_loss
 
-    def train(self, train_loader, test_loader) -> None:
+    def train(self, train_loader: DataLoader, test_loader: DataLoader) -> None:
         """
         The main train/eval loop. Performs training and evaluation
         once per epoch for the number of epochs determined by the
@@ -190,7 +191,6 @@ class Runner:
                 optimizer=self.optimizer,
                 epoch=t,
                 checkpoint_dir=self.checkpoint_dir,
-                run_dir=self.run_dir,
             )
             ckpt_utils.log_metrics(
                 run_dir=self.run_dir,

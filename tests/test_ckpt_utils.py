@@ -53,6 +53,16 @@ def test_log_metrics(tmp_path: Path) -> None:
             next(reader)
 
 
+def test_save_config(
+        tmp_path: Path,
+        experiment_config: ExperimentConfig,
+) -> None:
+    cfg_path = ckpt.save_config(experiment_config, tmp_path)
+    with open(cfg_path, "r") as f:
+        yaml_config: Mapping[str, Any] = yaml.safe_load(f)
+        assert yaml_config == asdict(experiment_config)
+
+
 def test_save_state(
         mlp: nn.Module,
         sgd: Optimizer,
@@ -72,7 +82,7 @@ def test_save_state(
     - Read the checkpoint and assert all the values match
     """
 
-    cfg_path, ckpt_path = make_checkpoint
+    ckpt_path = make_checkpoint
     with pytest.raises(FileExistsError):
         ckpt.save_state(**make_state)
 
@@ -94,12 +104,8 @@ def test_save_state(
             checkpoint.loss_state_dict[key],
             value,
         )
-
     # Config equality checks
     assert checkpoint.config == asdict(experiment_config)
-    with open(cfg_path, "r") as f:
-        yaml_config: Mapping[str, Any] = yaml.safe_load(f)
-        assert yaml_config == checkpoint.config
 
 
 def assert_state_close(expected: Mapping, actual: Mapping) -> None:
@@ -126,7 +132,7 @@ def test_restore_state(
 
     expected_rng_state = copy.deepcopy(RNGState.capture())
 
-    _, ckpt_path = make_checkpoint
+    ckpt_path = make_checkpoint
     checkpoint = ckpt.load_checkpoint(ckpt_path)
     ckpt.restore_state_from_checkpoint(mlp, sgd, loss_fn, checkpoint)
 
