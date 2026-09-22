@@ -18,13 +18,13 @@ class ModuleConfig:
 
 @dataclass
 class ExperimentConfig:
+    model: ModuleConfig
+    loss_fn: ModuleConfig
+    optimizer: ModuleConfig
     experiments_root: str = "experiments"
     experiment_name: str = "default"
     batch_size: int = 64
     epochs: int = 10
-    model: ModuleConfig
-    loss_fn: ModuleConfig
-    optimizer: ModuleConfig
     device: str = "cpu"
 
     @classmethod

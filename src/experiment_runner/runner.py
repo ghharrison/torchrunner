@@ -50,8 +50,6 @@ class Runner:
             self.experiments_root / self.config.experiment_name
         )
         self.run_dir: Path = self._create_run_dirs()
-        self.checkpoint_dir: Path = self.run_dir / "checkpoints"
-        self.checkpoint_dir.mkdir(parents=True)
 
     @classmethod
     def from_checkpoint(cls, checkpoint_path: Path) -> Self:
@@ -80,7 +78,9 @@ class Runner:
         self.experiment_dir.mkdir(parents=True, exist_ok=True)
         run_dir = self.experiment_dir / timestamp
         run_dir.mkdir(parents=True)
-        (run_dir / "checkpoints").mkdir()
+        self.checkpoint_dir = run_dir / "checkpoints"
+        self.checkpoint_dir.mkdir()
+
         return run_dir
 
     def _restore_from_checkpoint(self, checkpoint: RunCheckpoint) -> None:
