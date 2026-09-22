@@ -32,7 +32,7 @@ def set_all_seeds(seed: float) -> None:
     torch.backends.cudnn.benchmark = False
 
 
-def main(run_source: ExperimentConfig | Path) -> None:
+def main() -> None:
     """
     Run, using either a config for a new run or a checkpoint path
     to continue from an existing checkpoint.
@@ -40,16 +40,25 @@ def main(run_source: ExperimentConfig | Path) -> None:
     Args:
         run_source: An `ExperimentConfig` or `Path`.
     """
-    match run_source:
+    args = parse_args()
+    if args.config:
+        config_path: str = args.config
+        source = ExperimentConfig.from_yaml(config_path)
+    else:
+        if not args.checkpoint:
+            raise RuntimeError("Must specify checkpoint or config")
+        source = Path(args.checkpoint)
+
+    match source:
         case ExperimentConfig():
             runner = Runner(
-                config=run_source,
+                config=source,
             )
         case Path():
-            runner = Runner.from_checkpoint(run_source)
+            runner = Runner.from_checkpoint(source)
         case _:
             raise TypeError(
-                f"Input source was of unsupported type {type(run_source)}",
+                f"Input source was of unsupported type {type(source)}",
             )
 
     train_dataloader: DataLoader = create_loader(
@@ -64,12 +73,4 @@ def main(run_source: ExperimentConfig | Path) -> None:
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    if args.config:
-        config_path: str = args.config
-        source = ExperimentConfig.from_yaml(config_path)
-    else:
-        if not args.checkpoint:
-            raise RuntimeError("Must specify checkpoint or config")
-        source = Path(args.checkpoint)
-    main(run_source=source)
+    main()
