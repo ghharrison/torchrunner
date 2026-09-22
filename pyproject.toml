@@ -14,6 +14,8 @@ dependencies = [
     "torchvision (>=0.28.0,<0.30.0)"
 ]
 
+[project.scripts]
+experiment-runner = "experiment_runner.main:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
