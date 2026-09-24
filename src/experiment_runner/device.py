@@ -1,10 +1,8 @@
 """Utilities related to `torch.device`.
 
-The set of supported devices is inferred from the attributes of
-`torch.backends`.
+The device configuration is validated by creating a `torch.device`
+and its availability is checked using `torch.empty`.
 """
-
-from types import ModuleType
 
 from experiment_runner.experiment_config import ExperimentConfig
 import torch
@@ -27,17 +25,20 @@ def get_device(config: ExperimentConfig) -> torch.device:
     if device_name == 'cpu':
         return torch.device('cpu')
 
-    if hasattr(torch.backends, device_name):
-        backend: ModuleType = getattr(torch.backends, device_name)
-        if hasattr(backend, 'is_available') and backend.is_available():
-            return torch.device(device_name)
-        print(
-            f"Warning: configured device {device_name} is not available. "
-            f"Falling back to CPU"
+    try:
+        device = torch.device(device_name)
+    except Exception as e:
+        raise ValueError(
+            f"Configured device {device_name} is not recognized "
+            f"as a valid torch device: {e}"
         )
-        return torch.device('cpu')
 
-    raise ValueError(
-        f"Configured device {device_name} is not recognized "
-        "as a valid torch backend."
-    )
+    try:
+        torch.empty(0, device=device)
+    except Exception as e:
+        raise RuntimeError(
+            f"Device {device_name} is a valid torch device, but is "
+            f"not currently available: {e}"
+        )
+
+    return device
