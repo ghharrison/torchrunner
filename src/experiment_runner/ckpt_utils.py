@@ -121,7 +121,7 @@ def save_config(config: ExperimentConfig, run_dir: Path) -> Path:
         config: an `ExperimentConfig` representing this experiment's
             configuration.
 
-        run_dir: A `pathlib.Path` representing the directory for the current 
+        run_dir: A `pathlib.Path` representing the directory for the current
             training run.
 
     Returns:

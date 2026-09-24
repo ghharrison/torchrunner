@@ -1,23 +1,38 @@
 """
 Dataclass for experiment configs.
 
-Also includes a generic dataclass intended to configure
+Also includes a generic Pydantic model intended to configure
 `nn.Module`s, including models, optimizers, or some loss functions.
 """
-from dataclasses import dataclass, field
-from typing import Any, Mapping, Self
+from typing import Any, Self
 
+from pydantic import BaseModel, Field
 import yaml
 
 
-@dataclass
-class ModuleConfig:
+class ModuleConfig(BaseModel):
     type: str
-    params: Mapping = field(default_factory=dict)
+    params: dict[str, Any]
 
 
-@dataclass
-class ExperimentConfig:
+class TransformConfig(BaseModel):
+    name: str
+    params: dict[str, Any]
+
+
+class DatasetTransformConfig(BaseModel):
+    train: list[TransformConfig] = Field(default_factory=list)
+    eval: list[TransformConfig] = Field(default_factory=list)
+
+
+class DatasetConfig(BaseModel):
+    name: str
+    root: str = "data"
+    transforms: DatasetTransformConfig
+
+
+class ExperimentConfig(BaseModel):
+    dataset: DatasetConfig
     model: ModuleConfig
     loss_fn: ModuleConfig
     optimizer: ModuleConfig
@@ -35,8 +50,8 @@ class ExperimentConfig:
 
         Args:
             config_dict: A `dict[str, Any]` representing the config.
-            The fields `model`, `loss_fn`, and `optimizer` must be present
-            in the config; others have default values.
+            The fields `dataset`, `model`, `loss_fn`, and `optimizer`
+            must be present in the config; others have default values.
 
         Returns:
             An `ExperimentConfig` whose fields match the input dictionary.
