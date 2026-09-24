@@ -1,3 +1,7 @@
+"""
+Data-handling utilities for the FashionMNIST dataset.
+"""
+
 import math
 
 from experiment_runner.experiment_config import ExperimentConfig
@@ -27,6 +31,7 @@ def compute_stats(root="data", batch_size=64) -> tuple[float, float]:
         A tuple of Tensors representing mean and standard deviation of each
         channel in the dataset.
     """
+    print("Computing dataset statistics for `v2.Normalize`...")
     data = datasets.FashionMNIST(
         root=root,
         train=True,
@@ -40,14 +45,14 @@ def compute_stats(root="data", batch_size=64) -> tuple[float, float]:
     n_examples = 0
 
     for X, _ in loader:
-        X: torch.Tensor 
+        X: torch.Tensor
         mean += X.mean().item() * batch_size
         sq_mean += (X**2).mean().item() * batch_size
-        n_examples += batch_size
+        n_examples += X.shape[0]
     mean /= n_examples
     sq_mean /= n_examples
     std = math.sqrt(sq_mean - math.pow(mean, 2))
-
+    print(f"Mean: {mean}\tStandard deviation: {std}")
     return mean, std
 
 
@@ -55,6 +60,20 @@ def compose_transforms(
     config: ExperimentConfig,
     train: bool,
 ) -> v2.Compose:
+    """
+    Compose a configurable sequence of transforms for this dataset.
+
+    Args:
+        config: The experiment's `ExperimentConfig`. The applied transforms
+            will be under dataset.transforms.train or dataset.transforms.eval.
+
+        train: A boolean for whether the transforms are for training (as
+            opposed to evaluation.)
+
+    Returns:
+        A `v2.Compose` containing the configured transforms in the order they
+        were listed in the config.
+    """
     if train:
         config_transforms = config.dataset.transforms.train
     else:
@@ -70,12 +89,22 @@ def compose_transforms(
                 f"Configured transform type {transform.name} is not present"
                 f"in `torchvision.transforms.v2`."
             )
-        if transform_cls is v2.Normalize and not transform.params:
-            mean, std = compute_stats(
-                config.dataset.root,
-                config.batch_size,
-            )
-            transform.params = {"mean": mean, "std": std}
+        if 'dtype' in transform.params:
+            target_type = transform.params['dtype']
+            if hasattr(torch, target_type):
+                target_type = getattr(torch, target_type)
+                if type(target_type) is torch.dtype:
+                    transform.params['dtype'] = target_type
+                else:
+                    raise ValueError(
+                        f"Configured transform {transform.name} had argument "
+                        f"`dtype` but {target_type} is not a `torch.dtype`"
+                    )
+            else:
+                raise ValueError(
+                    f"Configured transform {transform.name} is not recognized "
+                    f"as a `torchvision.transforms.v2` transform"
+                )
         transforms.append(transform_cls(**transform.params))
     return v2.Compose(transforms)
 
@@ -86,6 +115,28 @@ def create_loader(
         train=True,
         download=True,
 ) -> DataLoader:
+    """
+    Create a `DataLoader` for the FashionMNIST dataset.
+
+    Args:
+        config: This experiment's `ExperimentConfig`.
+
+        root: The root directory for datasets, expressed as a relative
+            path to the current working directory. (Default `./data`)
+
+        train: A boolean of whether or not the desired DataLoader is
+            for training. (default `True`)
+
+        download: Whether to download the dataset if it is not found at the
+            given `root`. (default `True`)
+
+    Returns:
+        A `DataLoader` for the FashionMNIST dataset.
+
+    Raises:
+        `RuntimeError`: The dataset was not found at the given `root`, and
+        `download` is not `True`.
+    """
     transforms = compose_transforms(config, train)
     data = datasets.FashionMNIST(
         root=root,

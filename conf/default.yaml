@@ -2,7 +2,44 @@ experiments_root: experiments
 experiment_name: default
 batch_size: 64
 epochs: 10
-device: cpu
+device: cuda
+dataset:
+  name: FashionMNIST
+  transforms:
+    train:
+      - name: RandomHorizontalFlip
+        params: {}
+      - name: RandomVerticalFlip
+        params: {}
+      - name: RandomCrop
+        params:
+          size: 28
+          padding: 2
+      - name: ToImage
+        params: {}
+      - name: ToDtype
+        params:
+          dtype: float32
+          scale: true
+      - name: Normalize
+        params:
+          mean:
+            - 0.2862
+          std:
+            - 0.3531
+    eval:
+      - name: ToImage
+        params: {}
+      - name: ToDtype
+        params:
+          dtype: float32
+          scale: true
+      - name: Normalize
+        params:
+          mean:
+            - 0.2862
+          std:
+            - 0.3531
 model:
   type: mlp
   params:
