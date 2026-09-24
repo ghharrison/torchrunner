@@ -1,11 +1,37 @@
-# Project: mini experiment runner
+# Torchrunner: A PyTorch experiment-running tool
 
-Taking a trivial toy example from the PyTorch tutorial, gradually build it up into a working example of experiment software. Goals include
-- Modularize the code, logically placing different functionality in corresponding files under `src/`
-- Make the code configurable using dataclasses, JSON/YAML configs and command-line arguments
-- Generate experiment directories for each run, storing metrics, logs, and checkpoints
-- Extend checkpoint saving to include state of training process, allowing interrupted training runs to be resumed
-- Export metrics to JSON or CSV in addition to CLI output. Add utilities to plot metrics.
-- Unit test key components
-- Longer-term: use a larger dataset (CIFAR-10) and a more advanced network (CNN)
-- Longer-term: integrate with experiment-running tools like WnB
+A Python package for running configurable PyTorch experiments. 
+
+This project currently supports image-classification experiments
+using PyTorch and a defined set of dataset/model/optimizer implementations.
+The core training and evaluation components are deliberately independent
+of individual model implementations.
+
+## Features
+- Persists experiment state, including model/optimizer/loss function state and
+RNG state, to allow tracking experiment progress and resuming from
+interrupted training runs. 
+- Supports a variety of model architectures, optimizers, and loss functions.
+- Experiment configs allow easy experimentation across multiple configurations
+without requiring changes to source.
+
+## Installation
+Navigate to the directory containing the checked-out repo and use `pip install` 
+to create an editable install. Dependencies such as `torch` will be installed
+automatically.
+```
+pip install -e .
+```
+
+## Usage
+Running an experiment requires an experiment config, which defines key aspects
+of the experiment such as the choice of architecture and optimizer. An example
+config is located at `conf/default.yaml`. 
+```
+experiment-runner --config path/to/config.yaml
+```
+Alternatively, providing a path to a Torchrunner-created checkpoint with 
+`--checkpoint` attempts to resume training from the last uninterrupted epoch:
+```
+experiment-runner --checkpoint experiments/foo/20XX-MM-DD_HH-MM-SS/checkpoints/epoch_03.pt
+```
