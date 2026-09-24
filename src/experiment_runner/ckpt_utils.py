@@ -127,7 +127,7 @@ def save_config(config: ExperimentConfig, run_dir: Path) -> Path:
     Returns:
         A `pathlib.Path` pointing to the created config file.
     """
-    config_dict = asdict(config)
+    config_dict = config.model_dump()
     config_path = run_dir / CONFIG_FILENAME
     if os.path.exists(config_path):
         raise FileExistsError(f"Config file {config_path} exists.")
@@ -176,7 +176,7 @@ def save_state(
     else:
         loss_state_dict = {}
     checkpoint = RunCheckpoint(
-        config=asdict(config),
+        config=config.model_dump(),
         model_state_dict=model.state_dict(),
         optimizer_state_dict=optimizer.state_dict(),
         loss_state_dict=loss_state_dict,

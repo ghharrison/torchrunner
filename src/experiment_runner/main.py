@@ -63,11 +63,11 @@ def main() -> None:
 
     train_dataloader: DataLoader = create_loader(
         train=True,
-        batch_size=runner.config.batch_size
+        config=runner.config,
     )
     test_dataloader: DataLoader = create_loader(
         train=False,
-        batch_size=runner.config.batch_size
+        config=runner.config,
     )
     runner.train(train_dataloader, test_dataloader)
 
