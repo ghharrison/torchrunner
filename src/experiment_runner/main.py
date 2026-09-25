@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from experiment_runner.argparse_utils import parse_args
-from experiment_runner.data.fashionmnist import create_loader
+from experiment_runner.data.common import create_loader
 from experiment_runner.experiment_config import ExperimentConfig
 from experiment_runner.runner import Runner
 
