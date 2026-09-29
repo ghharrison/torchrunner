@@ -15,6 +15,7 @@ class MLPModule(nn.Module):
     """
 
     def __init__(self,
+                 in_channels: int,
                  image_dim: int,
                  linear_layer_size: int,
                  output_classes: int) -> None:
@@ -22,7 +23,7 @@ class MLPModule(nn.Module):
         self.flatten = nn.Flatten()
         self.model = nn.Sequential(
             nn.Linear(
-                in_features=image_dim**2,
+                in_features=in_channels*(image_dim**2),
                 out_features=linear_layer_size,
             ),
             nn.ReLU(),
