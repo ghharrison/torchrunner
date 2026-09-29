@@ -68,23 +68,9 @@ def create_loader(
     `torchvision.transforms.v2` and that the configured dataset is a
     `torchvision.datasets.VisionDataset`.
     """
-    config_transforms = getattr(
-        config.dataset.transforms, 'train' if train else 'eval'
-    )
-
-    transforms = []
-    for name, params in config_transforms.items():
-        try:
-            transform_cls = getattr(v2, name)
-        except AttributeError:
-            # TODO: Allow definition and registration of custom transforms
-            raise ValueError(
-                f"Configured transform type {name} is not present in "
-                f"`torchvision.transforms.v2`."
-            )
-        transforms.append(transform_cls(**params))
+    transforms = compose_transforms(config, train)
     dataset_name = config.dataset.name
-    if hasattr(datasets, ):
+    if hasattr(datasets, dataset_name):
         dataset_cls: type = getattr(datasets, dataset_name)
         if not issubclass(dataset_cls, datasets.VisionDataset):
             raise ValueError(
@@ -100,6 +86,6 @@ def create_loader(
         root=config.dataset.root,
         train=train,
         download=True,
-        transform=v2.Compose(transforms),
+        transform=transforms,
     )
     return DataLoader(data, batch_size=config.batch_size, shuffle=train)
