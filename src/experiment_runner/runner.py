@@ -12,7 +12,6 @@ from typing import Self
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
-from torch.types import Number
 
 import experiment_runner.ckpt_utils as ckpt_utils
 from experiment_runner.ckpt_utils import RunCheckpoint
@@ -107,7 +106,7 @@ class Runner:
         """
         self.model.train()
         size = len(train_loader.dataset)
-        epoch_loss = 0
+        epoch_loss = torch.zeros((), device=self.device)
 
         for batch, (X, y) in enumerate(train_loader):
             X: Tensor
@@ -124,16 +123,16 @@ class Runner:
             self.optimizer.zero_grad()
 
             batch_size: int = X.size(0)
-            loss_value: Number = loss.item()
+            loss_value: Tensor = loss.detach()
             epoch_loss += loss_value * batch_size
 
             if batch % 100 == 0:
                 current = batch * train_loader.batch_size + len(X)
-                print(f"loss: {loss_value:>7f}  [{current:>5d}/{size:>5d}]")
+                print(f"loss: {loss_value.item():>7f}  [{current:>5d}/{size:>5d}]")  # noqa
 
         epoch_loss /= size
-        print(f"Training Error: \n Avg loss: {epoch_loss:>8f} \n")
-        return epoch_loss
+        print(f"Training Error: \n Avg loss: {epoch_loss.item():>8f} \n")
+        return epoch_loss.item()
 
     def eval_step(self, test_loader: DataLoader) -> float:
         """
@@ -149,8 +148,8 @@ class Runner:
         self.model.eval()
         size = len(test_loader.dataset)
         num_batches = len(test_loader)
-        test_loss = 0
-        correct = 0
+        test_loss = torch.zeros((), device=self.device)
+        correct = torch.zeros((), device=self.device)
 
         with torch.no_grad():
             for X, y in test_loader:
@@ -158,16 +157,16 @@ class Runner:
                 y: Tensor = y.to(self.device)
                 prediction: Tensor = self.model(X)
 
-                test_loss += self.loss_fn(prediction, y).item()
+                test_loss += self.loss_fn(prediction, y).detach()
 
                 batch_correct: Tensor = (prediction.argmax(1) == y)
-                correct += batch_correct.type(torch.float).sum().item()
+                correct += batch_correct.type(torch.float).sum()
 
         test_loss /= num_batches
         correct /= size
-        print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")  # noqa: E501
+        print(f"Test Error: \n Accuracy: {(100*correct.item()):>0.1f}%, Avg loss: {test_loss.item():>8f} \n")  # noqa: E501
 
-        return test_loss
+        return test_loss.item()
 
     def train(self, train_loader: DataLoader, test_loader: DataLoader) -> None:
         """
