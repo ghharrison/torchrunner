@@ -1,0 +1,56 @@
+experiments_root: experiments
+experiment_name: fashionmnist
+batch_size: 64
+epochs: 10
+device: cuda
+dataset:
+  name: FashionMNIST
+  transforms:
+    train:
+      - name: RandomHorizontalFlip
+        params: {}
+      - name: RandomVerticalFlip
+        params: {}
+      - name: RandomCrop
+        params:
+          size: 28
+          padding: 2
+      - name: ToImage
+        params: {}
+      - name: ToDtype
+        params:
+          dtype: float32
+          scale: true
+      - name: Normalize
+        params:
+          mean:
+            - 0.2862
+          std:
+            - 0.3531
+    eval:
+      - name: ToImage
+        params: {}
+      - name: ToDtype
+        params:
+          dtype: float32
+          scale: true
+      - name: Normalize
+        params:
+          mean:
+            - 0.2862
+          std:
+            - 0.3531
+model:
+  type: mlp
+  params:
+    in_channels: 1
+    image_dim: 28
+    linear_layer_size: 512
+    output_classes: 10
+loss_fn:
+  type: crossentropy
+  params: {}
+optimizer:
+  type: sgd
+  params:
+    lr: 0.001
