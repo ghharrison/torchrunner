@@ -3,10 +3,12 @@ from typing import Mapping
 from torch import nn
 
 import experiment_runner.mlp as mlp
+import experiment_runner.cnn as cnn
 from experiment_runner.experiment_config import ExperimentConfig
 
 MODELS: Mapping[str, type[nn.Module]] = {
     "mlp": mlp.MLPModule,
+    "cnn": cnn.CNNModule,
 }
 
 
