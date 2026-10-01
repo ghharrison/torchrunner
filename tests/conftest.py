@@ -8,7 +8,7 @@ from torch.optim import SGD, Optimizer
 
 from experiment_runner.ckpt_utils import save_state
 from experiment_runner.experiment_config import ModuleConfig, ExperimentConfig
-from experiment_runner.mlp import MLPModule
+from experiment_runner.model.mlp import MLPModule
 
 
 @pytest.fixture

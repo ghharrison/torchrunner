@@ -1,6 +1,6 @@
 import torch
 
-from experiment_runner.mlp import MLPModule
+from experiment_runner.model.mlp import MLPModule
 
 
 FASHION_IMAGE_DIM = 28
