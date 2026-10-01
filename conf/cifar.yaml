@@ -7,14 +7,6 @@ dataset:
   name: CIFAR10
   transforms:
     train:
-      - name: RandomHorizontalFlip
-        params: {}
-      - name: RandomVerticalFlip
-        params: {}
-      - name: RandomCrop
-        params:
-          size: 32
-          padding: 4
       - name: ToImage
         params: {}
       - name: ToDtype
@@ -65,3 +57,4 @@ optimizer:
   type: sgd
   params:
     lr: 0.001
+    momentum: 0.9
