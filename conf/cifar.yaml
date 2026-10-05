@@ -41,15 +41,21 @@ dataset:
             - 0.1994
             - 0.2010
 model:
-  type: cnn
-  params:
-    in_channels: 3
-    image_dim: 32
-    conv_layer_size: 16
-    kernel_size: 3
-    stride: 2
-    padding: 1
-    output_classes: 10
+  - type: cnn
+    params:
+      in_channels: 3
+      pool_factor: 2  # Use MaxPool2d(2,2) to reduce by factor of 2
+      out_channels: [16, 32, 64]
+      input_image_dim: 32
+      kernel_sizes: [5, 5, 5]
+      padding: 'same'
+  - type: mlp
+    params:
+      in_channels: 64
+      input_image_dim: 4
+      hidden_layer_sizes: [512, 256, 128]
+      output_classes: 10
+
 loss_fn:
   type: crossentropy
   params: {}

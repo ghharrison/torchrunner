@@ -1,6 +1,6 @@
 import torch
 
-from experiment_runner.model.mlp import MLPModule
+from experiment_runner.model.mlp import MLPBlock
 
 
 FASHION_IMAGE_DIM = 28
@@ -9,7 +9,7 @@ N_CLASSES = 10
 
 
 def test_mlp_module() -> None:
-    mlp = MLPModule(
+    mlp = MLPBlock(
         image_dim=FASHION_IMAGE_DIM,
         linear_layer_size=LINEAR_LAYER_SIZE,
         output_classes=N_CLASSES,

@@ -8,7 +8,7 @@ from torch.optim import SGD, Optimizer
 
 from experiment_runner.ckpt_utils import save_state
 from experiment_runner.experiment_config import ModuleConfig, ExperimentConfig
-from experiment_runner.model.mlp import MLPModule
+from experiment_runner.model.mlp import MLPBlock
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def mlp_config() -> ModuleConfig:
 
 @pytest.fixture
 def mlp(mlp_config: ModuleConfig) -> nn.Module:
-    return MLPModule(**mlp_config.params)
+    return MLPBlock(**mlp_config.params)
 
 
 @pytest.fixture
@@ -33,7 +33,7 @@ def sgd_config() -> ModuleConfig:
 
 
 @pytest.fixture
-def sgd(mlp: MLPModule, sgd_config: ModuleConfig) -> Optimizer:
+def sgd(mlp: MLPBlock, sgd_config: ModuleConfig) -> Optimizer:
     sgd = SGD(mlp.parameters(), **sgd_config.params)
     return sgd
 

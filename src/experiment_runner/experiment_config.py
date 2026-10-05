@@ -33,7 +33,7 @@ class DatasetConfig(BaseModel):
 
 class ExperimentConfig(BaseModel):
     dataset: DatasetConfig
-    model: ModuleConfig
+    model: list[ModuleConfig]
     loss_fn: ModuleConfig
     optimizer: ModuleConfig
     experiments_root: str = "experiments"
@@ -56,9 +56,9 @@ class ExperimentConfig(BaseModel):
         Returns:
             An `ExperimentConfig` whose fields match the input dictionary.
         """
-        config_dict['model'] = ModuleConfig(
-            **config_dict.get("model", {}),
-        )
+        config_dict['model'] = [
+            ModuleConfig(**block) for block in config_dict.get("model", [])
+        ]
         config_dict['loss_fn'] = ModuleConfig(
             **config_dict.get("loss_fn", {}),
         )
