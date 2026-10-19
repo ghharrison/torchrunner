@@ -27,10 +27,11 @@ def compute_output_dim(
         elif padding == "same":
             return input_dim
         else:
-            raise ValueError(
-                f"invalid padding value {padding} - must be an integer, "
-                "'valid', or 'same'"
-            )
+            if type(padding) is not int:
+                raise ValueError(
+                    f"invalid padding value {padding} - must be an integer, "
+                    "'valid', or 'same'"
+                )
     out_dim = int(
         (input_dim + 2*padding - dilation*(kernel_size-1) - 1) / stride + 1
     )
